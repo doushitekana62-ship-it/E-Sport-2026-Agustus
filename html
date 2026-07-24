@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 Tournament Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content neon-border">
+            <div class="login-header">
+                <i class="fas fa-gamepad"></i>
+                <h2>ADMIN LOGIN</h2>
+            </div>
+            <div class="login-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="usernameInput" placeholder="Username" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="passwordInput" placeholder="Password">
+                </div>
+                <button id="loginBtn" class="neon-btn">
+                    <i class="fas fa-sign-in-alt"></i> LOGIN
+                </button>
+                <div id="loginError" class="error-text"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" style="display:none;">
+        <!-- HEADER -->
+        <header class="header">
+            <div class="logo-container">
+                <i class="fas fa-trophy neon-icon"></i>
+                <h1>TOURNAMENT <span>MANAGER</span></h1>
+            </div>
+            <div class="header-right">
+                <span class="admin-badge" id="adminBadge">
+                    <i class="fas fa-user-shield"></i> Admin
+                </span>
+                <button id="logoutBtn" class="logout-btn" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- GAME SELECTOR -->
+        <nav class="game-nav">
+            <button class="game-btn active" data-game="mlbb">
+                <i class="fas fa-crosshairs"></i>
+                <span>MLBB</span>
+                <small>Mobile Legends</small>
+            </button>
+            <button class="game-btn" data-game="ctr">
+                <i class="fas fa-car"></i>
+                <span>CTR</span>
+                <small>Crash Team Racing</small>
+            </button>
+            <button class="game-btn" data-game="pes">
+                <i class="fas fa-futbol"></i>
+                <span>PES/FC</span>
+                <small>EA Sport FC 26</small>
+            </button>
+        </nav>
+
+        <!-- CONTENT -->
+        <main id="contentArea">
+            <!-- Dinamis diisi JavaScript -->
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="footer">
+            <p><i class="fas fa-sync-alt"></i> Auto-save di browser | <i class="fas fa-github"></i> GitHub Pages</p>
+        </footer>
+    </div>
+
+    <!-- MATCH INPUT MODAL -->
+    <div id="matchModal" class="modal">
+        <div class="modal-content neon-border">
+            <div class="modal-header">
+                <h3><i class="fas fa-gamepad"></i> Input Skor Pertandingan</h3>
+                <button class="close-modal" onclick="closeMatchModal()">&times;</button>
+            </div>
+            <div id="matchInputContent">
+                <!-- Dinamis -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
