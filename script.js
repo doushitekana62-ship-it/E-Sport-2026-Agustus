@@ -1,1393 +1,961 @@
 // ============================================================
-//  TOURNAMENT MANAGEMENT SYSTEM - FULL LOGIC
-//  Author: Tournament Admin
-//  Version: 1.0
+//  TOURNAMENT MANAGER 2026
+//  Membaca data dari Google Spreadsheet
+//  Versi: 1.0
 // ============================================================
 
 // ============================================================
-//  ADMIN CREDENTIALS (HARDCODE - BISA DIUBAH)
+//  KONFIGURASI SPREADSHEET
+//  Ganti link berikut dengan link publish spreadsheet Anda
 // ============================================================
-const ADMIN = {
-    username: 'admin',
-    password: 'rahasia123'
-};
-
-// ============================================================
-//  DATA TOURNAMENT
-// ============================================================
-const TOURNAMENT_DATA = {
-    mlbb: {
-        name: 'MLBB',
-        icon: 'fa-crosshairs',
-        groups: {
-            'A': ['Bene', 'Naqash', 'Tama Ardi ENG', 'Yasha WS', 'Gibran Sifu'],
-            'B': ['Daniel L', 'Faisal Hakim', 'Ade Lukman', 'Ujang Jaelani WS', 'Ade Project'],
-            'C': ['Riki NZoom', 'Andri', 'Nabil', 'Nicholas', 'Agus Eng'],
-            'D': ['Gilang', 'Adzwar', 'Barend', 'Pace', 'Jaenal'],
-            'E': ['Sikwan', 'Asher', 'Novan', 'Bintang WS', 'Joshua'],
-            'F': ['Aziz Prj', 'Tegar', 'Moses', 'Zakariya Efendi', 'Hizkia Derren'],
-            'G': ['Ade R Eng', 'Dwi WS', 'Aldika', 'Yona', 'Ikhsan']
-        },
-        matches: [], // { group, player1, player2, score1, score2, played }
-        standings: {}, // { player: { points, wins, draws, losses, matches } }
-        finalists: [], // 2 pemain dengan poin tertinggi
-        finalMatches: [], // BO5 matches
-        champion: null
-    },
-    ctr: {
-        name: 'CTR',
-        icon: 'fa-car',
-        groups: {
-            'A': ['Nicolas Kurnia Pancipta', 'Ade Rizkon Gunawan', 'Barend', 'Pace'],
-            'B': ['Dimas Pamungkas', 'Asher Xavierius Mokalu', 'Adzwar Muhamad Fadhilah', 'Zakariaya Efendi'],
-            'C': ['Daniel L.A.U', 'Bertus', 'Nuriyah', 'Gibran Putra Yulerny'],
-            'D': ['Naqash Wiyar Jatmiko', 'Ikhsan fadilah', 'Pak Sidik', 'Tegar Wahyu'],
-            'E': ['SLAMET MUJIANTO', 'Yona Salnupansen', 'Faishal Hakim Ardika', 'Esthu (juara bertahan)'],
-            'F': ['Gregorius Yoga', 'Bennedictus Dimas Aditia', 'Arif electric', 'Novan Sukma Aji'],
-            'G': ['Jaenal', 'Paul', 'Arif Project', 'Bayu wahyu pribadi'],
-            'H': ['sikwan', 'Joshua']
-        },
-        matches: [],
-        standings: {},
-        knockout: {
-            round16: [],
-            round8: [],
-            round4: [],
-            final: null
-        },
-        champion: null
-    },
-    pes: {
-        name: 'PES/FC',
-        icon: 'fa-futbol',
-        teams: {
-            'A': { players: ['Gibran Putra Yulerry', 'Paul'], status: 'active' },
-            'B': { players: ['Esthu (juara bertahan)', 'Arif Project'], status: 'active' },
-            'C': { players: ['Yona Salnupansen', 'Moses'], status: 'active' },
-            'D': { players: ['Naqash Wiyar Jatmiko', 'Nala Adonis'], status: 'active' },
-            'E': { players: ['Tegar Wahyu', 'Harun'], status: 'active' },
-            'F': { players: ['Asher Xavierius Mokalu', 'Ikhsan fadilah'], status: 'active' },
-            'G': { players: ['Arif electric', 'Andri'], status: 'active' },
-            'H': { players: ['Novan Sukma Aji', 'Pace'], status: 'active' },
-            'I': { players: ['Faishal Hakim Ardika', 'Bayu wahyu pribadi'], status: 'active' },
-            'J': { players: ['Daniel L.A.U', 'Hizkia Darren A.P.'], status: 'active' },
-            'K': { players: ['SLAMET MUJIANTO', 'sikwan'], status: 'active' },
-            'L': { players: ['Adzwar Muhamad Fadhilah', 'Nicolas Kurnia Pancipita'], status: 'active' },
-            'M': { players: ['Joshua', 'Dimas Pamungkas'], status: 'active' },
-            'N': { players: ['Bertus', 'Pratama Gilang Buana'], status: 'active' }
-        },
-        bracket: {
-            round1: [], // 7 matches
-            round2: [], // 4 matches (termasuk BYE)
-            round3: [], // 2 matches
-            final: null // 1 match
-        },
-        champion: null,
-        byeTeam: 'B' // Esthu sebagai juara bertahan
+const CONFIG = {
+    // Base URL spreadsheet (tanpa gid)
+    BASE_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGMy9RZ4BDEkzQzwWzmFktWZOYMN_3Itz_MxZsksFw72AULd-2nYOihbW87E6qb7Pq9pQCluKMzz5-/pub',
+    
+    // GID untuk setiap sheet (sesuaikan dengan spreadsheet Anda)
+    SHEETS: {
+        mlbb: { gid: 0, name: 'MLBB' },
+        mlbbTeams: { gid: 1, name: 'MLBB_Teams' },
+        ctr: { gid: 2, name: 'CTR' },
+        pes: { gid: 3, name: 'PES' },
+        pesTeams: { gid: 4, name: 'PES_Teams' }
     }
 };
 
 // ============================================================
-//  STATE MANAGEMENT
+//  STATE
 // ============================================================
 let currentGame = 'mlbb';
-let isLoggedIn = false;
-let data = {};
+let allData = {
+    mlbb: { matches: [], teams: [], standings: [] },
+    ctr: { matches: [], standings: [] },
+    pes: { matches: [], teams: [], bracket: [] }
+};
+let isLoading = false;
+let lastUpdate = null;
 
 // ============================================================
-//  LOCAL STORAGE
+//  DOM REFS
 // ============================================================
-function loadData() {
-    const saved = localStorage.getItem('tournamentData');
-    if (saved) {
-        try {
-            const parsed = JSON.parse(saved);
-            // Merge with default structure
-            data = deepMerge(TOURNAMENT_DATA, parsed);
-            return true;
-        } catch (e) {
-            console.warn('Gagal load data, menggunakan default');
-        }
+const contentArea = document.getElementById('contentArea');
+const currentDateEl = document.getElementById('currentDate');
+const countdownText = document.getElementById('countdownText');
+const lastUpdateEl = document.getElementById('lastUpdate');
+
+// ============================================================
+//  UTILITY FUNCTIONS
+// ============================================================
+function getSheetUrl(gid) {
+    return `${CONFIG.BASE_URL}?gid=${gid}&output=csv`;
+}
+
+async function fetchCSV(gid) {
+    const url = getSheetUrl(gid);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        return parseCSV(text);
+    } catch (error) {
+        console.error(`Error fetching sheet gid=${gid}:`, error);
+        return [];
     }
-    data = JSON.parse(JSON.stringify(TOURNAMENT_DATA));
-    return false;
 }
 
-function saveData() {
-    localStorage.setItem('tournamentData', JSON.stringify(data));
-}
-
-function deepMerge(target, source) {
-    const result = { ...target };
-    for (const key in source) {
-        if (source.hasOwnProperty(key)) {
-            if (typeof source[key] === 'object' && source[key] !== null && !Array.isArray(source[key])) {
-                result[key] = deepMerge(target[key] || {}, source[key]);
-            } else {
-                result[key] = source[key];
-            }
-        }
+function parseCSV(text) {
+    const lines = text.split('\n').filter(line => line.trim() !== '');
+    if (lines.length === 0) return [];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    const result = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((h, idx) => {
+            row[h] = values[idx] !== undefined ? values[idx].trim().replace(/^"|"$/g, '') : '';
+        });
+        result.push(row);
     }
     return result;
 }
 
-function resetData() {
-    if (confirm('⚠️ Reset semua data tournament? Ini akan menghapus semua skor!')) {
-        data = JSON.parse(JSON.stringify(TOURNAMENT_DATA));
-        saveData();
-        renderCurrentGame();
-        alert('✅ Data berhasil direset!');
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('id-ID', { 
+            day: 'numeric', 
+            month: 'short', 
+            year: 'numeric' 
+        });
+    } catch {
+        return dateStr;
     }
 }
 
-// ============================================================
-//  AUTHENTICATION
-// ============================================================
-function login() {
-    const username = document.getElementById('usernameInput').value.trim();
-    const password = document.getElementById('passwordInput').value.trim();
-    const errorEl = document.getElementById('loginError');
+function getStatusColor(status) {
+    const s = status?.toLowerCase() || '';
+    if (s === 'done' || s === 'selesai') return 'done';
+    return 'pending';
+}
 
-    if (username === ADMIN.username && password === ADMIN.password) {
-        isLoggedIn = true;
-        document.getElementById('loginModal').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-        errorEl.textContent = '';
-        loadData();
-        renderAll();
-        showNotification('✅ Selamat datang, Admin!', 'success');
+// ============================================================
+//  COUNTDOWN
+// ============================================================
+function updateCountdown() {
+    const now = new Date();
+    const targets = [
+        { date: '2026-07-27', label: 'MLBB Mulai' },
+        { date: '2026-08-03', label: 'CTR Mulai' },
+        { date: '2026-08-05', label: 'PES Mulai' }
+    ];
+    
+    let nearest = null;
+    let minDiff = Infinity;
+    
+    targets.forEach(t => {
+        const d = new Date(t.date);
+        const diff = d - now;
+        if (diff > 0 && diff < minDiff) {
+            minDiff = diff;
+            nearest = t;
+        }
+    });
+    
+    if (nearest) {
+        const days = Math.floor(minDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((minDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const mins = Math.floor((minDiff % (1000 * 60 * 60)) / (1000 * 60));
+        countdownText.textContent = `${days}d ${hours}h ${mins}m → ${nearest.label}`;
+        countdownText.style.color = 'var(--neon-yellow)';
     } else {
-        errorEl.textContent = '❌ Username atau password salah!';
-        errorEl.style.color = '#ff4d94';
-    }
-}
-
-function logout() {
-    if (confirm('Yakin ingin logout?')) {
-        isLoggedIn = false;
-        document.getElementById('loginModal').style.display = 'flex';
-        document.getElementById('mainApp').style.display = 'none';
-        document.getElementById('usernameInput').value = '';
-        document.getElementById('passwordInput').value = '';
-        document.getElementById('loginError').textContent = '';
+        countdownText.textContent = '🏆 Tournament Berlangsung!';
+        countdownText.style.color = 'var(--neon-green)';
     }
 }
 
 // ============================================================
-//  NOTIFICATION
+//  FETCH ALL DATA
 // ============================================================
-function showNotification(msg, type = 'info') {
-    const colors = {
-        success: '#39ff14',
-        error: '#ff4d94',
-        info: '#4dc9ff'
-    };
-    const div = document.createElement('div');
-    div.style.cssText = `
-        position: fixed; top: 20px; right: 20px; 
-        background: #12122a; border: 2px solid ${colors[type]}; 
-        color: white; padding: 15px 25px; border-radius: 12px;
-        box-shadow: 0 0 30px rgba(0,0,0,0.5);
-        z-index: 99999;
-        font-weight: 500;
-        animation: fadeIn 0.3s ease;
-        max-width: 90%;
+async function fetchAllData() {
+    if (isLoading) return;
+    isLoading = true;
+    contentArea.innerHTML = `
+        <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>🔄 Memuat data dari spreadsheet...</p>
+        </div>
     `;
-    div.textContent = msg;
-    document.body.appendChild(div);
-    setTimeout(() => {
-        div.style.opacity = '0';
-        div.style.transition = 'opacity 0.5s';
-        setTimeout(() => div.remove(), 500);
-    }, 3000);
+
+    try {
+        // Fetch semua sheet
+        const [mlbbRaw, mlbbTeamsRaw, ctrRaw, pesRaw, pesTeamsRaw] = await Promise.all([
+            fetchCSV(CONFIG.SHEETS.mlbb.gid),
+            fetchCSV(CONFIG.SHEETS.mlbbTeams.gid),
+            fetchCSV(CONFIG.SHEETS.ctr.gid),
+            fetchCSV(CONFIG.SHEETS.pes.gid),
+            fetchCSV(CONFIG.SHEETS.pesTeams.gid)
+        ]);
+
+        // Proses MLBB
+        allData.mlbb.matches = mlbbRaw;
+        allData.mlbb.teams = mlbbTeamsRaw;
+        allData.mlbb.standings = calculateMLBBStandings(mlbbRaw, mlbbTeamsRaw);
+
+        // Proses CTR
+        allData.ctr.matches = ctrRaw;
+        allData.ctr.standings = calculateCTRStandings(ctrRaw);
+
+        // Proses PES
+        allData.pes.matches = pesRaw;
+        allData.pes.teams = pesTeamsRaw;
+        allData.pes.bracket = buildPESBracket(pesRaw, pesTeamsRaw);
+
+        lastUpdate = new Date();
+        lastUpdateEl.textContent = `Last update: ${lastUpdate.toLocaleTimeString('id-ID')}`;
+        
+        renderCurrentGame();
+        updateCountdown();
+
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        contentArea.innerHTML = `
+            <div class="loading-container" style="color:var(--neon-red);">
+                <i class="fas fa-exclamation-triangle" style="font-size:48px;"></i>
+                <h3>Gagal memuat data</h3>
+                <p style="color:var(--text-secondary);">Pastikan spreadsheet sudah dipublikasikan dan link benar.</p>
+                <button onclick="fetchAllData()" class="refresh-btn" style="padding:10px 30px;font-size:16px;margin-top:10px;">
+                    <i class="fas fa-redo"></i> Coba Lagi
+                </button>
+            </div>
+        `;
+    }
+    
+    isLoading = false;
+}
+
+// ============================================================
+//  MLBB STANDINGS
+// ============================================================
+function calculateMLBBStandings(matches, teams) {
+    const standings = {};
+    
+    teams.forEach(t => {
+        const key = t.Team?.trim() || '';
+        if (key) {
+            standings[key] = {
+                team: key,
+                name: t.TeamName || '',
+                players: [t.Player1, t.Player2, t.Player3, t.Player4, t.Player5].filter(Boolean),
+                points: 0,
+                wins: 0,
+                draws: 0,
+                losses: 0,
+                matches: 0,
+                goalsFor: 0,
+                goalsAgainst: 0
+            };
+        }
+    });
+    
+    matches.forEach(m => {
+        const t1 = m.Team1?.trim() || '';
+        const t2 = m.Team2?.trim() || '';
+        const s1 = parseInt(m.Score1) || 0;
+        const s2 = parseInt(m.Score2) || 0;
+        
+        if (!t1 || !t2 || !standings[t1] || !standings[t2]) return;
+        if (m.Status?.toLowerCase() !== 'done' && !m.Score1 && !m.Score2) return;
+        
+        const team1 = standings[t1];
+        const team2 = standings[t2];
+        team1.matches += 1;
+        team2.matches += 1;
+        team1.goalsFor += s1;
+        team1.goalsAgainst += s2;
+        team2.goalsFor += s2;
+        team2.goalsAgainst += s1;
+        
+        if (s1 > s2) {
+            team1.points += 3;
+            team1.wins += 1;
+            team2.losses += 1;
+        } else if (s2 > s1) {
+            team2.points += 3;
+            team2.wins += 1;
+            team1.losses += 1;
+        } else {
+            team1.points += 1;
+            team2.points += 1;
+            team1.draws += 1;
+            team2.draws += 1;
+        }
+    });
+    
+    return Object.values(standings).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.wins !== a.wins) return b.wins - a.wins;
+        const diffA = a.goalsFor - a.goalsAgainst;
+        const diffB = b.goalsFor - b.goalsAgainst;
+        return diffB - diffA;
+    });
+}
+
+// ============================================================
+//  CTR STANDINGS
+// ============================================================
+function calculateCTRStandings(matches) {
+    const standings = {};
+    
+    matches.forEach(m => {
+        const p1 = m.Player1?.trim() || '';
+        const p2 = m.Player2?.trim() || '';
+        const s1 = parseInt(m.Score1) || 0;
+        const s2 = parseInt(m.Score2) || 0;
+        
+        if (!p1 || !p2) return;
+        if (m.Status?.toLowerCase() !== 'done' && !m.Score1 && !m.Score2) return;
+        
+        if (!standings[p1]) standings[p1] = { player: p1, group: m.Group || '', points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
+        if (!standings[p2]) standings[p2] = { player: p2, group: m.Group || '', points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
+        
+        const s1data = standings[p1];
+        const s2data = standings[p2];
+        s1data.matches += 1;
+        s2data.matches += 1;
+        
+        if (s1 > s2) {
+            s1data.points += 3;
+            s1data.wins += 1;
+            s2data.losses += 1;
+        } else if (s2 > s1) {
+            s2data.points += 3;
+            s2data.wins += 1;
+            s1data.losses += 1;
+        } else {
+            s1data.points += 1;
+            s2data.points += 1;
+            s1data.draws += 1;
+            s2data.draws += 1;
+        }
+    });
+    
+    return Object.values(standings).sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        return b.wins - a.wins;
+    });
+}
+
+// ============================================================
+//  PES BRACKET
+// ============================================================
+function buildPESBracket(matches, teams) {
+    const teamMap = {};
+    teams.forEach(t => {
+        const key = t.Team?.trim() || '';
+        if (key) {
+            teamMap[key] = {
+                team: key,
+                players: [t.Player1, t.Player2].filter(Boolean)
+            };
+        }
+    });
+    
+    // Build rounds
+    const rounds = {
+        round1: [],
+        round2: [],
+        round3: [],
+        final: null
+    };
+    
+    // Group matches by round
+    const roundMap = {};
+    matches.forEach(m => {
+        const round = m.Round?.trim() || 'R1';
+        if (!roundMap[round]) roundMap[round] = [];
+        roundMap[round].push(m);
+    });
+    
+    // Sort rounds
+    const roundKeys = Object.keys(roundMap).sort();
+    const roundLabels = ['R1', 'R2', 'R3', 'Final'];
+    
+    roundKeys.forEach((key, idx) => {
+        const matchesInRound = roundMap[key];
+        const roundData = matchesInRound.map(m => ({
+            match: m.Match || '',
+            team1: m.Team1?.trim() || '',
+            team2: m.Team2?.trim() || '',
+            score1: parseInt(m.Score1) || null,
+            score2: parseInt(m.Score2) || null,
+            winner: m.Winner?.trim() || '',
+            status: m.Status?.toLowerCase() || 'pending',
+            date: m.Date || ''
+        }));
+        
+        if (key === 'Final' || idx === 3) {
+            rounds.final = roundData[0] || null;
+        } else if (idx === 0) {
+            rounds.round1 = roundData;
+        } else if (idx === 1) {
+            rounds.round2 = roundData;
+        } else if (idx === 2) {
+            rounds.round3 = roundData;
+        }
+    });
+    
+    return { rounds, teamMap };
 }
 
 // ============================================================
 //  RENDER ENGINE
 // ============================================================
-function renderAll() {
-    renderGameNav();
+function renderCurrentGame() {
+    if (currentGame === 'mlbb') renderMLBB();
+    else if (currentGame === 'ctr') renderCTR();
+    else if (currentGame === 'pes') renderPES();
+}
+
+function switchGame(game) {
+    currentGame = game;
+    document.querySelectorAll('.game-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.game === game);
+    });
     renderCurrentGame();
 }
 
-function renderGameNav() {
-    const buttons = document.querySelectorAll('.game-btn');
-    buttons.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.game === currentGame);
-    });
-}
-
-function renderCurrentGame() {
-    const area = document.getElementById('contentArea');
-    const gameData = data[currentGame];
-
-    if (!gameData) {
-        area.innerHTML = '<p style="color:red;">Data game tidak ditemukan!</p>';
+// ============================================================
+//  RENDER MLBB
+// ============================================================
+function renderMLBB() {
+    const data = allData.mlbb;
+    if (!data.matches.length && !data.teams.length) {
+        contentArea.innerHTML = `
+            <div class="loading-container">
+                <i class="fas fa-database" style="font-size:48px;color:var(--text-muted);"></i>
+                <p>Data MLBB belum tersedia</p>
+                <button onclick="fetchAllData()" class="refresh-btn" style="padding:10px 30px;">
+                    <i class="fas fa-redo"></i> Refresh
+                </button>
+            </div>
+        `;
         return;
     }
-
-    let html = '';
-
-    // ========== MLBB ==========
-    if (currentGame === 'mlbb') {
-        html += renderMLBB(gameData);
-    }
-
-    // ========== CTR ==========
-    if (currentGame === 'ctr') {
-        html += renderCTR(gameData);
-    }
-
-    // ========== PES ==========
-    if (currentGame === 'pes') {
-        html += renderPES(gameData);
-    }
-
-    area.innerHTML = html;
-}
-
-// ============================================================
-//  MLBB RENDER
-// ============================================================
-function renderMLBB(gameData) {
-    // Init standings jika kosong
-    if (Object.keys(gameData.standings).length === 0) {
-        initStandings('mlbb');
-    }
-
+    
     let html = `
         <div class="section-title">
             <i class="fas fa-crosshairs"></i>
-            <span>MLBB - Fase Grup</span>
-            <button onclick="resetData()" style="margin-left:auto;background:rgba(255,77,148,0.2);border:1px solid #ff4d94;color:#ff4d94;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">
-                <i class="fas fa-redo"></i> Reset
-            </button>
+            <span>MLBB - Fase Grup (7 Team)</span>
+            <span class="badge">Round Robin</span>
         </div>
-        <div class="group-container">
     `;
-
-    // Render group standings
-    const groupKeys = Object.keys(gameData.groups);
-    groupKeys.forEach(group => {
-        const players = gameData.groups[group];
-        const standings = getGroupStandings('mlbb', group);
-
+    
+    // Standings
+    html += `<div class="group-grid">`;
+    const standings = data.standings;
+    if (standings.length) {
         html += `
-            <div class="group-card">
-                <h4><i class="fas fa-users"></i> Group ${group}</h4>
+            <div class="group-card" style="grid-column:1/-1;">
+                <div class="group-header">
+                    <h4><i class="fas fa-trophy"></i> Klasemen Akhir</h4>
+                    <span class="team-name">Top 2 ke Final BO5</span>
+                </div>
                 <table class="standings-table">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Pemain</th>
+                            <th>Team</th>
                             <th style="text-align:center">M</th>
+                            <th style="text-align:center">W</th>
+                            <th style="text-align:center">D</th>
+                            <th style="text-align:center">L</th>
                             <th style="text-align:center">P</th>
                         </tr>
                     </thead>
                     <tbody>
         `;
-
-        // Sort by points
-        const sorted = [...standings].sort((a, b) => b.points - a.points || a.wins - b.wins);
-        sorted.forEach((p, idx) => {
+        
+        standings.forEach((s, idx) => {
             const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : '';
             const topClass = idx < 2 ? 'rank-top' : '';
+            const displayName = s.name || `Team ${s.team}`;
             html += `
                 <tr class="${topClass}">
                     <td class="rank ${rankClass}">${idx + 1}</td>
-                    <td class="player-name">${p.player}</td>
-                    <td style="text-align:center">${p.matches || 0}</td>
-                    <td class="points">${p.points || 0}</td>
+                    <td class="team-cell">
+                        <strong>${displayName}</strong>
+                        <div style="font-size:10px;color:var(--text-muted);">
+                            ${s.players.join(', ')}
+                        </div>
+                    </td>
+                    <td class="text-center">${s.matches}</td>
+                    <td class="text-center" style="color:var(--neon-green);">${s.wins}</td>
+                    <td class="text-center" style="color:var(--neon-yellow);">${s.draws}</td>
+                    <td class="text-center" style="color:var(--neon-red);">${s.losses}</td>
+                    <td class="points">${s.points}</td>
                 </tr>
             `;
         });
-
+        
         html += `
                     </tbody>
                 </table>
-                <div style="margin-top:10px;font-size:11px;color:var(--text-secondary);">
-                    <i class="fas fa-info-circle"></i> 
-                    ${players.length} pemain • Top 2 ke Final
+            </div>
+        `;
+    }
+    html += `</div>`;
+    
+    // Matches list
+    html += `
+        <div class="section-title" style="margin-top:20px;">
+            <i class="fas fa-list"></i>
+            <span>Jadwal & Hasil Pertandingan</span>
+        </div>
+        <div class="match-list">
+    `;
+    
+    const matches = data.matches;
+    matches.forEach(m => {
+        const t1 = m.Team1?.trim() || '';
+        const t2 = m.Team2?.trim() || '';
+        const s1 = m.Score1 ? parseInt(m.Score1) : null;
+        const s2 = m.Score2 ? parseInt(m.Score2) : null;
+        const isDone = m.Status?.toLowerCase() === 'done' || (s1 !== null && s2 !== null);
+        const date = m.Date ? formatDate(m.Date) : `Hari ${m.Day || '-'}`;
+        
+        const team1Name = allData.mlbb.teams.find(t => t.Team?.trim() === t1)?.TeamName || t1;
+        const team2Name = allData.mlbb.teams.find(t => t.Team?.trim() === t2)?.TeamName || t2;
+        
+        html += `
+            <div class="match-item" onclick="showMatchDetail('mlbb', ${matches.indexOf(m)})">
+                <div class="match-teams">
+                    <span>${team1Name}</span>
+                    <span class="vs">vs</span>
+                    <span>${team2Name}</span>
+                </div>
+                <div class="match-score">
+                    ${isDone ? `<span class="score-done">${s1} - ${s2}</span>` : '<span class="score-pending">-</span>'}
+                </div>
+                <div>
+                    <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
+                        ${isDone ? '✅ Selesai' : '⏳ Pending'}
+                    </span>
+                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${date}</div>
                 </div>
             </div>
         `;
     });
-
+    
     html += `</div>`;
-
-    // ===== Final Section =====
-    const finalists = getMLBBFinalists();
-    html += `
-        <div class="section-title" style="margin-top:30px;">
-            <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
-            <span>FINAL BO5</span>
-        </div>
-    `;
-
-    if (finalists.length === 2) {
+    
+    // Final BO5 jika ada
+    const top2 = standings.slice(0, 2);
+    if (top2.length === 2) {
         html += `
+            <div class="section-title" style="margin-top:30px;">
+                <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
+                <span>🏆 GRAND FINAL BO5</span>
+                <span class="badge">31 Juli 2026</span>
+            </div>
             <div class="bracket-container">
-                <div class="bracket-title">🏆 GRAND FINAL - BEST OF 5</div>
-                <div style="display:flex;justify-content:center;gap:30px;flex-wrap:wrap;padding:20px;">
-                    <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid var(--neon-purple);">
-                        <div style="font-size:14px;color:var(--text-secondary);">Finalis 1</div>
-                        <div style="font-size:24px;font-weight:bold;color:var(--neon-blue);">${finalists[0]}</div>
+                <div class="bracket-title">${top2[0].name || top2[0].team} 🆚 ${top2[1].name || top2[1].team}</div>
+                <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;padding:15px;">
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-blue);">
+                        <div style="font-size:12px;color:var(--text-secondary);">Finalis 1</div>
+                        <div style="font-size:20px;font-weight:700;color:var(--neon-blue);">${top2[0].name || top2[0].team}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Poin: ${top2[0].points}</div>
                     </div>
-                    <div style="display:flex;align-items:center;font-size:30px;color:var(--neon-yellow);">
+                    <div style="display:flex;align-items:center;font-size:28px;color:var(--neon-yellow);">
                         <i class="fas fa-vs"></i>
                     </div>
-                    <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid var(--neon-pink);">
-                        <div style="font-size:14px;color:var(--text-secondary);">Finalis 2</div>
-                        <div style="font-size:24px;font-weight:bold;color:var(--neon-pink);">${finalists[1]}</div>
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-pink);">
+                        <div style="font-size:12px;color:var(--text-secondary);">Finalis 2</div>
+                        <div style="font-size:20px;font-weight:700;color:var(--neon-pink);">${top2[1].name || top2[1].team}</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Poin: ${top2[1].points}</div>
                     </div>
                 </div>
-                <div id="mlbbFinalMatches" style="margin-top:20px;">
-                    ${renderMLBBFinalMatches()}
-                </div>
-                ${gameData.champion ? `
-                    <div class="final-banner">
-                        <i class="fas fa-crown"></i>
-                        <h2>🏆 CHAMPION!</h2>
-                        <div class="champion-name">${gameData.champion}</div>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    } else {
-        html += `
-            <div class="bracket-container" style="text-align:center;padding:30px;color:var(--text-secondary);">
-                <i class="fas fa-hourglass-half" style="font-size:36px;color:var(--neon-purple);display:block;margin-bottom:10px;"></i>
-                Menunggu hasil grup untuk menentukan 2 finalis...
-                <div style="font-size:12px;margin-top:8px;">Klik pertandingan di grup untuk input skor</div>
-            </div>
-        `;
-    }
-
-    return html;
-}
-
-function initStandings(game) {
-    const gameData = data[game];
-    const groups = gameData.groups;
-
-    Object.keys(groups).forEach(group => {
-        groups[group].forEach(player => {
-            if (!gameData.standings[player]) {
-                gameData.standings[player] = { player, points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
-            }
-        });
-    });
-
-    // Generate matches if empty
-    if (gameData.matches.length === 0) {
-        generateMatches(game);
-    }
-
-    saveData();
-}
-
-function generateMatches(game) {
-    const gameData = data[game];
-    const groups = gameData.groups;
-    const matches = [];
-
-    Object.keys(groups).forEach(group => {
-        const players = groups[group];
-        for (let i = 0; i < players.length; i++) {
-            for (let j = i + 1; j < players.length; j++) {
-                matches.push({
-                    group: group,
-                    player1: players[i],
-                    player2: players[j],
-                    score1: null,
-                    score2: null,
-                    played: false
-                });
-            }
-        }
-    });
-
-    gameData.matches = matches;
-    saveData();
-}
-
-function getGroupStandings(game, group) {
-    const gameData = data[game];
-    const players = gameData.groups[group] || [];
-    const result = [];
-
-    players.forEach(player => {
-        const s = gameData.standings[player] || { player, points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
-        result.push({ ...s });
-    });
-
-    return result;
-}
-
-function getMLBBFinalists() {
-    const gameData = data.mlbb;
-    const standings = gameData.standings;
-    const sorted = Object.values(standings).sort((a, b) => b.points - a.points || a.wins - b.wins);
-    return sorted.slice(0, 2).map(s => s.player);
-}
-
-function renderMLBBFinalMatches() {
-    const gameData = data.mlbb;
-    let html = '';
-
-    if (gameData.finalMatches.length === 0) {
-        // Generate BO5 matches
-        const finalists = getMLBBFinalists();
-        if (finalists.length === 2) {
-            for (let i = 1; i <= 5; i++) {
-                gameData.finalMatches.push({
-                    match: i,
-                    player1: finalists[0],
-                    player2: finalists[1],
-                    score1: null,
-                    score2: null,
-                    played: false
-                });
-            }
-            saveData();
-        }
-    }
-
-    const finalMatches = gameData.finalMatches;
-    if (finalMatches.length === 0) return '<p style="text-align:center;color:var(--text-secondary);">Belum ada pertandingan final</p>';
-
-    let wins1 = 0,
-        wins2 = 0;
-    finalMatches.forEach(m => {
-        if (m.played) {
-            if (m.score1 > m.score2) wins1++;
-            else if (m.score2 > m.score1) wins2++;
-        }
-    });
-
-    const isFinished = wins1 >= 3 || wins2 >= 3;
-
-    html += `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
-    `;
-
-    finalMatches.forEach((m, idx) => {
-        const isPlayed = m.played;
-        const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-        const isWinnerMatch = winner ? true : false;
-
-        html += `
-            <div class="bracket-match" onclick="openMatchModal('mlbb', 'final', ${idx})" style="${isWinnerMatch ? 'border-color:var(--neon-green);' : ''}">
-                <div class="match-players">
-                    <div class="player-entry ${isPlayed && m.score1 > m.score2 ? 'winner' : ''}">
-                        <span>${m.player1}</span>
-                        <span class="score">${isPlayed ? m.score1 : '-'}</span>
-                    </div>
-                    <div class="player-entry ${isPlayed && m.score2 > m.score1 ? 'winner' : ''}">
-                        <span>${m.player2}</span>
-                        <span class="score">${isPlayed ? m.score2 : '-'}</span>
-                    </div>
-                </div>
-                <div class="match-status ${isPlayed ? 'played' : ''}">
-                    ${isPlayed ? `Match ${idx+1} ✓` : `Match ${idx+1} ⏳`}
-                    ${isPlayed && winner ? ` 🏆 ${winner}` : ''}
-                </div>
-            </div>
-        `;
-    });
-
-    html += `</div>`;
-
-    if (isFinished) {
-        const champion = wins1 >= 3 ? finalMatches[0].player1 : finalMatches[0].player2;
-        data.mlbb.champion = champion;
-        saveData();
-        html += `
-            <div class="final-banner" style="margin-top:20px;">
-                <i class="fas fa-crown"></i>
-                <h2>🏆 CHAMPION!</h2>
-                <div class="champion-name">${champion}</div>
-                <div style="font-size:14px;color:var(--text-secondary);margin-top:8px;">
-                    BO5: ${wins1} - ${wins2}
+                <div style="text-align:center;font-size:13px;color:var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> Skor BO5 akan diupdate di spreadsheet
                 </div>
             </div>
         `;
     }
-
-    return html;
+    
+    contentArea.innerHTML = html;
 }
 
 // ============================================================
-//  CTR RENDER (Simplified - similar to MLBB)
+//  RENDER CTR
 // ============================================================
-function renderCTR(gameData) {
-    if (Object.keys(gameData.standings).length === 0) {
-        initStandings('ctr');
+function renderCTR() {
+    const data = allData.ctr;
+    if (!data.matches.length) {
+        contentArea.innerHTML = `
+            <div class="loading-container">
+                <i class="fas fa-database" style="font-size:48px;color:var(--text-muted);"></i>
+                <p>Data CTR belum tersedia</p>
+                <button onclick="fetchAllData()" class="refresh-btn" style="padding:10px 30px;">
+                    <i class="fas fa-redo"></i> Refresh
+                </button>
+            </div>
+        `;
+        return;
     }
-
+    
+    // Group by group
+    const groups = {};
+    data.matches.forEach(m => {
+        const g = m.Group?.trim() || 'Unknown';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(m);
+    });
+    
     let html = `
         <div class="section-title">
             <i class="fas fa-car"></i>
-            <span>CTR - Fase Grup (Top 2 Lolos)</span>
-            <button onclick="resetData()" style="margin-left:auto;background:rgba(255,77,148,0.2);border:1px solid #ff4d94;color:#ff4d94;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">
-                <i class="fas fa-redo"></i> Reset
-            </button>
+            <span>CTR - Fase Grup</span>
+            <span class="badge">Top 2 Lolos</span>
         </div>
-        <div class="group-container">
+        <div class="group-grid">
     `;
-
-    const groupKeys = Object.keys(gameData.groups);
-    groupKeys.forEach(group => {
-        const standings = getGroupStandings('ctr', group);
-        const sorted = [...standings].sort((a, b) => b.points - a.points || a.wins - b.wins);
-
+    
+    // Standings per group
+    const allStandings = data.standings;
+    const groupStandings = {};
+    allStandings.forEach(s => {
+        const g = s.group || 'Unknown';
+        if (!groupStandings[g]) groupStandings[g] = [];
+        groupStandings[g].push(s);
+    });
+    
+    Object.keys(groups).sort().forEach(g => {
+        const players = groupStandings[g] || [];
+        const sorted = [...players].sort((a, b) => b.points - a.points || b.wins - a.wins);
+        
         html += `
             <div class="group-card">
-                <h4><i class="fas fa-users"></i> Group ${group}</h4>
+                <div class="group-header">
+                    <h4><i class="fas fa-users"></i> Group ${g}</h4>
+                    <span class="team-name">${sorted.length} pemain</span>
+                </div>
                 <table class="standings-table">
                     <thead>
                         <tr><th>#</th><th>Pemain</th><th style="text-align:center">M</th><th style="text-align:center">P</th></tr>
                     </thead>
                     <tbody>
         `;
-
-        sorted.forEach((p, idx) => {
+        
+        sorted.forEach((s, idx) => {
             const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : '';
             const topClass = idx < 2 ? 'rank-top' : '';
             html += `
                 <tr class="${topClass}">
                     <td class="rank ${rankClass}">${idx + 1}</td>
-                    <td class="player-name">${p.player}</td>
-                    <td style="text-align:center">${p.matches || 0}</td>
-                    <td class="points">${p.points || 0}</td>
+                    <td class="team-cell">${s.player}</td>
+                    <td class="text-center">${s.matches}</td>
+                    <td class="points">${s.points}</td>
                 </tr>
             `;
         });
-
+        
         html += `
                     </tbody>
                 </table>
-                <div style="margin-top:10px;font-size:11px;color:var(--text-secondary);">
-                    <i class="fas fa-info-circle"></i> Top 2 ke Knockout
+                <div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
+                    <i class="fas fa-info-circle"></i> 
+                    ✅ ${sorted.slice(0, 2).map(s => s.player).join(', ')} lolos ke 16 Besar
                 </div>
             </div>
         `;
     });
-
+    
     html += `</div>`;
-
-    // ===== Knockout Section =====
+    
+    // List semua pertandingan
     html += `
-        <div class="section-title" style="margin-top:30px;">
-            <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
-            <span>Knockout Stage</span>
+        <div class="section-title" style="margin-top:20px;">
+            <i class="fas fa-list"></i>
+            <span>Semua Pertandingan CTR</span>
         </div>
+        <div class="match-list">
     `;
-
-    // Get all qualified players (top 2 from each group)
-    const qualified = getAllQualified('ctr');
-    if (qualified.length === 16) {
-        html += renderCTRKnockout(qualified);
-    } else {
+    
+    data.matches.forEach((m, idx) => {
+        const p1 = m.Player1?.trim() || '';
+        const p2 = m.Player2?.trim() || '';
+        const s1 = m.Score1 ? parseInt(m.Score1) : null;
+        const s2 = m.Score2 ? parseInt(m.Score2) : null;
+        const isDone = m.Status?.toLowerCase() === 'done' || (s1 !== null && s2 !== null);
+        const date = m.Date ? formatDate(m.Date) : '-';
+        
         html += `
-            <div class="bracket-container" style="text-align:center;padding:30px;color:var(--text-secondary);">
-                <i class="fas fa-hourglass-half" style="font-size:36px;color:var(--neon-purple);display:block;margin-bottom:10px;"></i>
-                Menunggu hasil grup... (${qualified.length}/16 pemain lolos)
-            </div>
-        `;
-    }
-
-    return html;
-}
-
-function getAllQualified(game) {
-    const gameData = data[game];
-    const groups = gameData.groups;
-    const allQualified = [];
-
-    Object.keys(groups).forEach(group => {
-        const standings = getGroupStandings(game, group);
-        const sorted = [...standings].sort((a, b) => b.points - a.points || a.wins - b.wins);
-        const top2 = sorted.slice(0, 2).map(s => s.player);
-        allQualified.push(...top2);
-    });
-
-    return allQualified;
-}
-
-function renderCTRKnockout(players) {
-    // Shuffle untuk randomisasi bracket
-    const shuffled = [...players];
-    // Generate bracket matches (16 pemain → 8 matches)
-    let matches = [];
-    for (let i = 0; i < shuffled.length; i += 2) {
-        matches.push({
-            player1: shuffled[i],
-            player2: shuffled[i + 1] || 'BYE',
-            score1: null,
-            score2: null,
-            played: false,
-            winner: null
-        });
-    }
-
-    const ctrData = data.ctr;
-    if (ctrData.knockout.round16.length === 0) {
-        ctrData.knockout.round16 = matches;
-        saveData();
-    }
-
-    let html = `
-        <div class="bracket-container">
-            <div class="bracket-title">🏆 BABAK 16 BESAR</div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:30px;">
-    `;
-
-    const round16 = ctrData.knockout.round16;
-    round16.forEach((m, idx) => {
-        const isPlayed = m.played;
-        const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-
-        html += `
-            <div class="bracket-match" onclick="openMatchModal('ctr', 'round16', ${idx})" style="${winner ? 'border-color:var(--neon-green);' : ''}">
-                <div class="match-players">
-                    <div class="player-entry ${isPlayed && m.score1 > m.score2 ? 'winner' : ''}">
-                        <span>${m.player1}</span>
-                        <span class="score">${isPlayed ? m.score1 : '-'}</span>
-                    </div>
-                    <div class="player-entry ${isPlayed && m.score2 > m.score1 ? 'winner' : ''}">
-                        <span>${m.player2}</span>
-                        <span class="score">${isPlayed ? m.score2 : '-'}</span>
-                    </div>
+            <div class="match-item" onclick="showMatchDetail('ctr', ${idx})">
+                <div class="match-teams">
+                    <span>${p1}</span>
+                    <span class="vs">vs</span>
+                    <span>${p2}</span>
                 </div>
-                <div class="match-status ${isPlayed ? 'played' : ''}">
-                    ${isPlayed ? `✓ ${winner || 'Draw'}` : '⏳ Belum'}
+                <div class="match-score">
+                    ${isDone ? `<span class="score-done">${s1} - ${s2}</span>` : '<span class="score-pending">-</span>'}
+                </div>
+                <div>
+                    <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
+                        ${isDone ? '✅' : '⏳'}
+                    </span>
+                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${date}</div>
                 </div>
             </div>
         `;
     });
-
+    
     html += `</div>`;
+    
+    contentArea.innerHTML = html;
+}
 
-    // Check if round16 complete, generate round8
-    const allPlayed = round16.every(m => m.played);
-    if (allPlayed && ctrData.knockout.round8.length === 0) {
-        const winners = round16.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        const round8Matches = [];
-        for (let i = 0; i < winners.length; i += 2) {
-            round8Matches.push({
-                player1: winners[i],
-                player2: winners[i + 1] || 'BYE',
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            });
-        }
-        ctrData.knockout.round8 = round8Matches;
-        saveData();
-    }
-
-    // Render round8
-    if (ctrData.knockout.round8.length > 0) {
-        html += `<div class="bracket-title" style="margin-top:20px;">🏆 BABAK 8 BESAR</div>`;
-        html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:30px;">`;
-        ctrData.knockout.round8.forEach((m, idx) => {
-            const isPlayed = m.played;
-            const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-            html += `
-                <div class="bracket-match" onclick="openMatchModal('ctr', 'round8', ${idx})" style="${winner ? 'border-color:var(--neon-green);' : ''}">
-                    <div class="match-players">
-                        <div class="player-entry ${isPlayed && m.score1 > m.score2 ? 'winner' : ''}">
-                            <span>${m.player1}</span>
-                            <span class="score">${isPlayed ? m.score1 : '-'}</span>
-                        </div>
-                        <div class="player-entry ${isPlayed && m.score2 > m.score1 ? 'winner' : ''}">
-                            <span>${m.player2}</span>
-                            <span class="score">${isPlayed ? m.score2 : '-'}</span>
-                        </div>
-                    </div>
-                    <div class="match-status ${isPlayed ? 'played' : ''}">
-                        ${isPlayed ? `✓ ${winner || 'Draw'}` : '⏳ Belum'}
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-
-    // Check round8 complete → generate semifinal
-    if (ctrData.knockout.round8.length > 0 && ctrData.knockout.round8.every(m => m.played) && ctrData.knockout.round4.length === 0) {
-        const winners = ctrData.knockout.round8.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        const round4Matches = [];
-        for (let i = 0; i < winners.length; i += 2) {
-            round4Matches.push({
-                player1: winners[i],
-                player2: winners[i + 1],
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            });
-        }
-        ctrData.knockout.round4 = round4Matches;
-        saveData();
-    }
-
-    // Render semifinal
-    if (ctrData.knockout.round4.length > 0) {
-        html += `<div class="bracket-title" style="margin-top:20px;">🏆 BABAK 4 BESAR (Semifinal)</div>`;
-        html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:30px;">`;
-        ctrData.knockout.round4.forEach((m, idx) => {
-            const isPlayed = m.played;
-            const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-            html += `
-                <div class="bracket-match" onclick="openMatchModal('ctr', 'round4', ${idx})" style="${winner ? 'border-color:var(--neon-green);' : ''}">
-                    <div class="match-players">
-                        <div class="player-entry ${isPlayed && m.score1 > m.score2 ? 'winner' : ''}">
-                            <span>${m.player1}</span>
-                            <span class="score">${isPlayed ? m.score1 : '-'}</span>
-                        </div>
-                        <div class="player-entry ${isPlayed && m.score2 > m.score1 ? 'winner' : ''}">
-                            <span>${m.player2}</span>
-                            <span class="score">${isPlayed ? m.score2 : '-'}</span>
-                        </div>
-                    </div>
-                    <div class="match-status ${isPlayed ? 'played' : ''}">
-                        ${isPlayed ? `✓ ${winner || 'Draw'}` : '⏳ Belum'}
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-    }
-
-    // Check semifinal complete → final
-    if (ctrData.knockout.round4.length > 0 && ctrData.knockout.round4.every(m => m.played) && !ctrData.knockout.final) {
-        const winners = ctrData.knockout.round4.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        if (winners.length === 2) {
-            ctrData.knockout.final = {
-                player1: winners[0],
-                player2: winners[1],
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            };
-            saveData();
-        }
-    }
-
-    // Render final
-    if (ctrData.knockout.final) {
-        const f = ctrData.knockout.final;
-        const isPlayed = f.played;
-        const winner = isPlayed ? (f.score1 > f.score2 ? f.player1 : f.score2 > f.score1 ? f.player2 : null) : null;
-
-        html += `<div class="bracket-title" style="margin-top:20px;color:var(--neon-yellow);">🏆 GRAND FINAL</div>`;
-        html += `
-            <div style="display:flex;justify-content:center;gap:30px;flex-wrap:wrap;padding:20px;">
-                <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid var(--neon-blue);">
-                    <div style="font-size:14px;color:var(--text-secondary);">Finalis</div>
-                    <div style="font-size:24px;font-weight:bold;color:${isPlayed && f.score1 > f.score2 ? 'var(--neon-green)' : 'var(--neon-blue)'};">${f.player1}</div>
-                    <div style="font-size:20px;">${isPlayed ? f.score1 : '-'}</div>
-                </div>
-                <div style="display:flex;align-items:center;font-size:30px;color:var(--neon-yellow);"><i class="fas fa-vs"></i></div>
-                <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid var(--neon-pink);">
-                    <div style="font-size:14px;color:var(--text-secondary);">Finalis</div>
-                    <div style="font-size:24px;font-weight:bold;color:${isPlayed && f.score2 > f.score1 ? 'var(--neon-green)' : 'var(--neon-pink)'};">${f.player2}</div>
-                    <div style="font-size:20px;">${isPlayed ? f.score2 : '-'}</div>
-                </div>
-            </div>
-            <div style="text-align:center;">
-                <button class="neon-btn" onclick="openMatchModal('ctr', 'final', 0)" style="max-width:300px;margin:0 auto;">
-                    <i class="fas fa-edit"></i> Input Skor Final
+// ============================================================
+//  RENDER PES
+// ============================================================
+function renderPES() {
+    const data = allData.pes;
+    if (!data.matches.length) {
+        contentArea.innerHTML = `
+            <div class="loading-container">
+                <i class="fas fa-database" style="font-size:48px;color:var(--text-muted);"></i>
+                <p>Data PES/FC belum tersedia</p>
+                <button onclick="fetchAllData()" class="refresh-btn" style="padding:10px 30px;">
+                    <i class="fas fa-redo"></i> Refresh
                 </button>
             </div>
         `;
-
-        if (winner) {
-            data.ctr.champion = winner;
-            saveData();
-            html += `
-                <div class="final-banner" style="margin-top:20px;">
-                    <i class="fas fa-crown"></i>
-                    <h2>🏆 CHAMPION!</h2>
-                    <div class="champion-name">${winner}</div>
-                </div>
-            `;
-        }
+        return;
     }
-
-    return html;
-}
-
-// ============================================================
-//  PES RENDER
-// ============================================================
-function renderPES(gameData) {
+    
     let html = `
         <div class="section-title">
             <i class="fas fa-futbol"></i>
             <span>PES/FC 26 - Knockout</span>
-            <button onclick="resetData()" style="margin-left:auto;background:rgba(255,77,148,0.2);border:1px solid #ff4d94;color:#ff4d94;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;">
-                <i class="fas fa-redo"></i> Reset
-            </button>
+            <span class="badge">14 Tim</span>
         </div>
     `;
-
-    // Generate bracket if empty
-    if (gameData.bracket.round1.length === 0) {
-        generatePESBracket(gameData);
-    }
-
-    // Render bracket rounds
-    const rounds = [
-        { key: 'round1', label: '16 BESAR', icon: 'fa-chevron-right' },
-        { key: 'round2', label: '8 BESAR', icon: 'fa-chevron-right' },
-        { key: 'round3', label: '4 BESAR (Semifinal)', icon: 'fa-chevron-right' },
-        { key: 'final', label: '🏆 GRAND FINAL', icon: 'fa-trophy' }
-    ];
-
-    // Show team list
+    
+    // Team list
     html += `
-        <div style="background:var(--bg-secondary);border-radius:16px;padding:15px 20px;margin-bottom:20px;border:1px solid rgba(180,77,255,0.1);">
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:13px;">
+        <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:15px 20px;margin-bottom:20px;border:1px solid rgba(180,77,255,0.1);">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;font-size:12px;">
     `;
-
-    const teamKeys = Object.keys(gameData.teams);
-    teamKeys.forEach(key => {
-        const team = gameData.teams[key];
-        const isBye = key === gameData.byeTeam;
+    
+    const teams = data.teams;
+    teams.forEach(t => {
+        const team = t.Team?.trim() || '';
+        const p1 = t.Player1 || '';
+        const p2 = t.Player2 || '';
+        const isBye = team === 'B';
         html += `
-            <div style="padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:3px solid ${isBye ? 'var(--neon-yellow)' : 'var(--neon-purple)'};">
-                <strong style="color:${isBye ? 'var(--neon-yellow)' : 'var(--neon-blue)'};">Tim ${key}</strong>
+            <div style="padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid ${isBye ? 'var(--neon-yellow)' : 'var(--neon-purple)'};">
+                <strong style="color:${isBye ? 'var(--neon-yellow)' : 'var(--neon-blue)'};">Tim ${team}</strong>
                 ${isBye ? ' ⭐' : ''}
-                <div style="font-size:11px;color:var(--text-secondary);">${team.players.join(' & ')}</div>
+                <div style="font-size:10px;color:var(--text-muted);">${p1} & ${p2}</div>
             </div>
         `;
     });
-
+    
     html += `
             </div>
             <div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
-                <i class="fas fa-star" style="color:var(--neon-yellow);"></i> Tim B (Esthu) sebagai juara bertahan mendapat BYE ke 8 Besar
+                <i class="fas fa-star" style="color:var(--neon-yellow);"></i> Tim B (Esthu) mendapat BYE ke 8 Besar
             </div>
         </div>
     `;
-
-    // Render each round
+    
+    // Bracket
+    const bracket = data.bracket;
+    const rounds = [
+        { key: 'round1', label: '16 BESAR', icon: 'fa-chevron-right' },
+        { key: 'round2', label: '8 BESAR', icon: 'fa-chevron-right' },
+        { key: 'round3', label: '4 BESAR (Semifinal)', icon: 'fa-chevron-right' }
+    ];
+    
     rounds.forEach(round => {
-        const matches = gameData.bracket[round.key];
-        if (!matches || matches.length === 0) return;
-
-        const isFinal = round.key === 'final';
-        const isArray = Array.isArray(matches);
-
+        const matches = bracket.rounds?.[round.key] || [];
+        if (!matches.length) return;
+        
         html += `
             <div class="bracket-container" style="margin-top:15px;">
-                <div class="bracket-title" style="${isFinal ? 'color:var(--neon-yellow);' : ''}">
-                    <i class="fas ${round.icon}"></i> ${round.label}
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+                <div class="bracket-title"><i class="fas ${round.icon}"></i> ${round.label}</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
         `;
-
-        if (isArray) {
-            matches.forEach((m, idx) => {
-                const isPlayed = m.played;
-                const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-                const isBye = m.player2 === 'BYE';
-
-                html += `
-                    <div class="bracket-match" onclick="${!isFinal ? `openMatchModal('pes', '${round.key}', ${idx})` : ''}" 
-                         style="${winner ? 'border-color:var(--neon-green);' : ''} ${isBye ? 'border-color:var(--neon-yellow);' : ''}">
-                        <div class="match-players">
-                            <div class="player-entry ${isPlayed && m.score1 > m.score2 ? 'winner' : ''}">
-                                <span>${m.player1}</span>
-                                <span class="score">${isPlayed ? m.score1 : '-'}</span>
-                            </div>
-                            <div class="player-entry ${isPlayed && m.score2 > m.score1 ? 'winner' : ''}">
-                                <span>${isBye ? '⭐ BYE (Juara Bertahan)' : m.player2}</span>
-                                <span class="score">${isPlayed ? m.score2 : isBye ? 'Auto' : '-'}</span>
-                            </div>
-                        </div>
-                        <div class="match-status ${isPlayed ? 'played' : isBye ? 'byepass' : ''}">
-                            ${isPlayed ? `✓ ${winner || 'Draw'}` : isBye ? '⭐ BYE' : '⏳ Belum'}
-                        </div>
-                    </div>
-                `;
-            });
-        } else {
-            // Final (single match)
-            const m = matches;
-            const isPlayed = m.played;
-            const winner = isPlayed ? (m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null) : null;
-
+        
+        matches.forEach((m, idx) => {
+            const isDone = m.status === 'done' || (m.score1 !== null && m.score2 !== null);
+            const isBye = m.team2 === 'BYE (B)' || m.team2 === 'BYE';
+            const winner = m.winner || '';
+            
             html += `
-                <div style="grid-column:1/-1;display:flex;justify-content:center;gap:30px;flex-wrap:wrap;padding:20px;">
-                    <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid ${isPlayed && m.score1 > m.score2 ? 'var(--neon-green)' : 'var(--neon-blue)'};">
-                        <div style="font-size:14px;color:var(--text-secondary);">Finalis</div>
-                        <div style="font-size:24px;font-weight:bold;color:${isPlayed && m.score1 > m.score2 ? 'var(--neon-green)' : 'var(--neon-blue)'};">${m.player1}</div>
-                        <div style="font-size:20px;">${isPlayed ? m.score1 : '-'}</div>
+                <div class="bracket-match" onclick="showMatchDetail('pes', ${idx}, '${round.key}')" 
+                     style="${winner ? 'border-color:var(--neon-green);' : ''} ${isBye ? 'border-color:var(--neon-yellow);' : ''}">
+                    <div class="match-players">
+                        <div class="player-entry ${isDone && m.score1 > m.score2 ? 'winner' : ''}">
+                            <span>${m.team1 || '-'}</span>
+                            <span class="score">${isDone ? m.score1 : '-'}</span>
+                        </div>
+                        <div class="player-entry ${isDone && m.score2 > m.score1 ? 'winner' : ''}">
+                            <span>${isBye ? '⭐ BYE' : (m.team2 || '-')}</span>
+                            <span class="score">${isDone ? m.score2 : isBye ? 'Auto' : '-'}</span>
+                        </div>
                     </div>
-                    <div style="display:flex;align-items:center;font-size:30px;color:var(--neon-yellow);"><i class="fas fa-vs"></i></div>
-                    <div style="text-align:center;padding:20px 30px;background:var(--bg-primary);border-radius:16px;border:2px solid ${isPlayed && m.score2 > m.score1 ? 'var(--neon-green)' : 'var(--neon-pink)'};">
-                        <div style="font-size:14px;color:var(--text-secondary);">Finalis</div>
-                        <div style="font-size:24px;font-weight:bold;color:${isPlayed && m.score2 > m.score1 ? 'var(--neon-green)' : 'var(--neon-pink)'};">${m.player2}</div>
-                        <div style="font-size:20px;">${isPlayed ? m.score2 : '-'}</div>
+                    <div class="match-status ${isDone ? 'played' : ''} ${isBye ? 'byepass' : ''}">
+                        ${isDone ? `✅ ${winner || 'Draw'}` : isBye ? '⭐ BYE' : '⏳ Pending'}
                     </div>
-                </div>
-                <div style="text-align:center;grid-column:1/-1;">
-                    <button class="neon-btn" onclick="openMatchModal('pes', 'final', 0)" style="max-width:300px;margin:0 auto;">
-                        <i class="fas fa-edit"></i> Input Skor Final
-                    </button>
                 </div>
             `;
-
-            if (winner) {
-                data.pes.champion = winner;
-                saveData();
-                html += `
-                    <div class="final-banner" style="grid-column:1/-1;margin-top:10px;">
-                        <i class="fas fa-crown"></i>
-                        <h2>🏆 CHAMPION!</h2>
-                        <div class="champion-name">${winner}</div>
-                    </div>
-                `;
-            }
-        }
-
+        });
+        
         html += `</div></div>`;
     });
-
-    return html;
-}
-
-function generatePESBracket(gameData) {
-    const teams = Object.keys(gameData.teams);
-    const byeTeam = gameData.byeTeam;
-
-    // Round 1: 13 tim (semua kecuali bye) → 6 matches + 1 bye
-    const activeTeams = teams.filter(t => t !== byeTeam);
-    const round1 = [];
-    for (let i = 0; i < activeTeams.length; i += 2) {
-        if (i + 1 < activeTeams.length) {
-            round1.push({
-                player1: `Tim ${activeTeams[i]}`,
-                player2: `Tim ${activeTeams[i + 1]}`,
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            });
-        } else {
-            // Sisa 1 tim akan melawan BYE dari juara bertahan? 
-            // Sebenarnya byeTeam langsung ke round2
-            // Tim sisa masuk round2 juga
-            round1.push({
-                player1: `Tim ${activeTeams[i]}`,
-                player2: `BYE (Free)`,
-                score1: 1,
-                score2: 0,
-                played: true,
-                winner: `Tim ${activeTeams[i]}`
-            });
-        }
+    
+    // Final
+    if (bracket.rounds?.final) {
+        const f = bracket.rounds.final;
+        const isDone = f.status === 'done' || (f.score1 !== null && f.score2 !== null);
+        
+        html += `
+            <div class="bracket-container" style="margin-top:15px;border-color:var(--neon-yellow);">
+                <div class="bracket-title" style="color:var(--neon-yellow);">
+                    <i class="fas fa-trophy"></i> GRAND FINAL
+                </div>
+                <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;padding:15px;">
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid ${isDone && f.score1 > f.score2 ? 'var(--neon-green)' : 'var(--neon-blue)'};">
+                        <div style="font-size:12px;color:var(--text-secondary);">Finalis</div>
+                        <div style="font-size:20px;font-weight:700;color:${isDone && f.score1 > f.score2 ? 'var(--neon-green)' : 'var(--neon-blue)'};">${f.team1 || '-'}</div>
+                        <div style="font-size:20px;">${isDone ? f.score1 : '-'}</div>
+                    </div>
+                    <div style="display:flex;align-items:center;font-size:28px;color:var(--neon-yellow);"><i class="fas fa-vs"></i></div>
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid ${isDone && f.score2 > f.score1 ? 'var(--neon-green)' : 'var(--neon-pink)'};">
+                        <div style="font-size:12px;color:var(--text-secondary);">Finalis</div>
+                        <div style="font-size:20px;font-weight:700;color:${isDone && f.score2 > f.score1 ? 'var(--neon-green)' : 'var(--neon-pink)'};">${f.team2 || '-'}</div>
+                        <div style="font-size:20px;">${isDone ? f.score2 : '-'}</div>
+                    </div>
+                </div>
+                ${f.winner ? `
+                    <div class="final-banner" style="margin-top:10px;">
+                        <i class="fas fa-crown trophy-icon"></i>
+                        <h2>🏆 CHAMPION!</h2>
+                        <div class="champion-name">${f.winner}</div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
     }
-
-    gameData.bracket.round1 = round1;
-    saveData();
+    
+    contentArea.innerHTML = html;
 }
 
 // ============================================================
-//  MATCH INPUT MODAL
+//  MODAL DETAIL
 // ============================================================
-function openMatchModal(game, round, index) {
-    if (!isLoggedIn) {
-        showNotification('❌ Silakan login terlebih dahulu!', 'error');
-        return;
-    }
-
-    const gameData = data[game];
+function showMatchDetail(game, index, round) {
+    const modal = document.getElementById('matchModal');
+    const body = document.getElementById('modalBody');
+    
     let match = null;
     let title = '';
-
+    
     if (game === 'mlbb') {
-        if (round === 'final') {
-            match = gameData.finalMatches[index];
-            title = `MLBB Final BO5 - Match ${index + 1}`;
-        } else {
-            match = gameData.matches[index];
-            title = `MLBB Group ${match.group}`;
-        }
+        match = allData.mlbb.matches[index];
+        title = `MLBB - ${match.Team1} vs ${match.Team2}`;
     } else if (game === 'ctr') {
-        if (round === 'final') {
-            match = gameData.knockout.final;
-            title = 'CTR Grand Final';
-        } else {
-            match = gameData.knockout[round][index];
-            const roundNames = { round16: '16 Besar', round8: '8 Besar', round4: 'Semifinal' };
-            title = `CTR ${roundNames[round] || round}`;
-        }
+        match = allData.ctr.matches[index];
+        title = `CTR - ${match.Player1} vs ${match.Player2}`;
     } else if (game === 'pes') {
-        if (round === 'final') {
-            match = gameData.bracket.final;
-            title = 'PES Grand Final';
-        } else {
-            match = gameData.bracket[round][index];
-            const roundNames = { round1: '16 Besar', round2: '8 Besar', round3: 'Semifinal' };
-            title = `PES ${roundNames[round] || round}`;
-        }
+        const roundData = allData.pes.bracket.rounds?.[round] || [];
+        match = roundData[index];
+        title = `PES - ${match?.team1} vs ${match?.team2}`;
     }
-
+    
     if (!match) {
-        showNotification('❌ Pertandingan tidak ditemukan!', 'error');
+        body.innerHTML = '<p style="color:var(--neon-red);">Data tidak ditemukan</p>';
+        modal.style.display = 'flex';
         return;
     }
-
-    // Check if match is BYE
-    if (match.player2 === 'BYE' || match.player2 === 'BYE (Free)') {
-        showNotification('⏳ Ini adalah BYE, otomatis lolos!', 'info');
-        return;
-    }
-
-    // Check if already played
-    if (match.played) {
-        if (!confirm(`⚠️ Pertandingan sudah dimainkan!\n${match.player1} ${match.score1} - ${match.score2} ${match.player2}\n\nIngin mengubah skor?`)) {
-            return;
-        }
-    }
-
-    // Build modal content
-    const modal = document.getElementById('matchModal');
-    const content = document.getElementById('matchInputContent');
-
-    content.innerHTML = `
-        <div style="margin-bottom:15px;color:var(--text-secondary);font-size:14px;">
-            <i class="fas fa-info-circle"></i> ${title}
+    
+    const isDone = match.Status?.toLowerCase() === 'done' || (match.Score1 !== undefined && match.Score1 !== null && match.Score1 !== '');
+    const s1 = match.Score1 || match.score1 || '-';
+    const s2 = match.Score2 || match.score2 || '-';
+    const winner = match.Winner || match.winner || '-';
+    
+    body.innerHTML = `
+        <div class="modal-body">
+            <div class="detail-row">
+                <span class="label">🏷️ Pertandingan</span>
+                <span class="value">${title}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">📅 Tanggal</span>
+                <span class="value">${match.Date || match.date || '-'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="label">📊 Skor</span>
+                <span class="value" style="font-size:20px;color:${isDone ? 'var(--neon-green)' : 'var(--text-muted)'};">
+                    ${isDone ? `${s1} - ${s2}` : 'Belum dimainkan'}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="label">🏆 Pemenang</span>
+                <span class="value ${winner && winner !== '-' ? 'winner' : ''}">
+                    ${winner && winner !== '-' ? `🎉 ${winner}` : '-'}
+                </span>
+            </div>
+            <div class="detail-row">
+                <span class="label">📌 Status</span>
+                <span class="value" style="color:${isDone ? 'var(--neon-green)' : 'var(--neon-yellow)'};">
+                    ${isDone ? '✅ Selesai' : '⏳ Pending'}
+                </span>
+            </div>
         </div>
-        <form id="matchForm" class="match-input-form">
-            <div class="player-row">
-                <span class="pname">${match.player1}</span>
-                <input type="number" id="score1" value="${match.score1 || ''}" min="0" max="99" placeholder="Skor">
-            </div>
-            <div style="text-align:center;color:var(--text-secondary);font-weight:bold;">VS</div>
-            <div class="player-row">
-                <span class="pname">${match.player2}</span>
-                <input type="number" id="score2" value="${match.score2 || ''}" min="0" max="99" placeholder="Skor">
-            </div>
-            <button type="submit" class="submit-match">
-                <i class="fas fa-check"></i> Simpan Skor
-            </button>
-            ${match.played ? '<div style="text-align:center;font-size:12px;color:var(--neon-yellow);">⚠️ Ini akan mengupdate skor yang sudah ada</div>' : ''}
-        </form>
     `;
-
+    
     modal.style.display = 'flex';
-
-    // Handle submit
-    document.getElementById('matchForm').onsubmit = function(e) {
-        e.preventDefault();
-        const s1 = parseInt(document.getElementById('score1').value);
-        const s2 = parseInt(document.getElementById('score2').value);
-
-        if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) {
-            showNotification('❌ Masukkan skor yang valid!', 'error');
-            return;
-        }
-
-        // Update match
-        match.score1 = s1;
-        match.score2 = s2;
-        match.played = true;
-
-        // Update standings for MLBB and CTR
-        if (game === 'mlbb' || game === 'ctr') {
-            updateStandings(game, match.player1, match.player2, s1, s2);
-        }
-
-        // For PES, just mark winner
-        if (game === 'pes') {
-            if (s1 > s2) match.winner = match.player1;
-            else if (s2 > s1) match.winner = match.player2;
-            else match.winner = null;
-
-            // Auto-advance for PES
-            advancePESBracket(game);
-        }
-
-        // For CTR knockout, auto-advance
-        if (game === 'ctr' && round !== 'final') {
-            advanceCTRKnockout(game);
-        }
-
-        saveData();
-        closeMatchModal();
-        renderCurrentGame();
-        showNotification(`✅ Skor disimpan! ${match.player1} ${s1} - ${s2} ${match.player2}`, 'success');
-
-        // Check if final complete for MLBB
-        if (game === 'mlbb' && round === 'final') {
-            checkMLBBFinal();
-        }
-    };
 }
 
-function closeMatchModal() {
+function closeModal() {
     document.getElementById('matchModal').style.display = 'none';
 }
 
-function updateStandings(game, player1, player2, score1, score2) {
-    const gameData = data[game];
-    const s1 = gameData.standings[player1];
-    const s2 = gameData.standings[player2];
-
-    if (!s1 || !s2) return;
-
-    // Remove old points if match already played (for re-score)
-    // We'll just update from scratch for simplicity
-    // Recalculate all matches for this game
-    recalculateStandings(game);
-}
-
-function recalculateStandings(game) {
-    const gameData = data[game];
-    const standings = gameData.standings;
-
-    // Reset all standings
-    Object.keys(standings).forEach(key => {
-        standings[key] = { player: key, points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
-    });
-
-    // Process all matches
-    gameData.matches.forEach(m => {
-        if (m.played) {
-            const s1 = standings[m.player1];
-            const s2 = standings[m.player2];
-            if (s1 && s2) {
-                s1.matches += 1;
-                s2.matches += 1;
-                if (m.score1 > m.score2) {
-                    s1.points += 3;
-                    s1.wins += 1;
-                    s2.losses += 1;
-                } else if (m.score2 > m.score1) {
-                    s2.points += 3;
-                    s2.wins += 1;
-                    s1.losses += 1;
-                } else {
-                    s1.points += 1;
-                    s2.points += 1;
-                    s1.draws += 1;
-                    s2.draws += 1;
-                }
-            }
-        }
-    });
-
-    saveData();
-}
-
-function advanceCTRKnockout(game) {
-    const gameData = data[game];
-    const knockout = gameData.knockout;
-
-    // Check round16 complete
-    if (knockout.round16.every(m => m.played) && knockout.round8.length === 0) {
-        const winners = knockout.round16.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        const round8 = [];
-        for (let i = 0; i < winners.length; i += 2) {
-            if (i + 1 < winners.length) {
-                round8.push({
-                    player1: winners[i],
-                    player2: winners[i + 1],
-                    score1: null,
-                    score2: null,
-                    played: false,
-                    winner: null
-                });
-            }
-        }
-        knockout.round8 = round8;
-        saveData();
-    }
-
-    // Check round8 complete
-    if (knockout.round8.length > 0 && knockout.round8.every(m => m.played) && knockout.round4.length === 0) {
-        const winners = knockout.round8.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        const round4 = [];
-        for (let i = 0; i < winners.length; i += 2) {
-            if (i + 1 < winners.length) {
-                round4.push({
-                    player1: winners[i],
-                    player2: winners[i + 1],
-                    score1: null,
-                    score2: null,
-                    played: false,
-                    winner: null
-                });
-            }
-        }
-        knockout.round4 = round4;
-        saveData();
-    }
-
-    // Check round4 complete
-    if (knockout.round4.length > 0 && knockout.round4.every(m => m.played) && !knockout.final) {
-        const winners = knockout.round4.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        if (winners.length === 2) {
-            knockout.final = {
-                player1: winners[0],
-                player2: winners[1],
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            };
-            saveData();
-        }
-    }
-}
-
-function advancePESBracket(game) {
-    const gameData = data[game];
-    const bracket = gameData.bracket;
-
-    // Check round1 complete
-    if (bracket.round1.every(m => m.played) && bracket.round2.length === 0) {
-        const winners = bracket.round1.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        // Add BYE team
-        const byeTeam = `Tim ${gameData.byeTeam}`;
-        const allWinners = [...winners, byeTeam];
-
-        const round2 = [];
-        for (let i = 0; i < allWinners.length; i += 2) {
-            if (i + 1 < allWinners.length) {
-                round2.push({
-                    player1: allWinners[i],
-                    player2: allWinners[i + 1],
-                    score1: null,
-                    score2: null,
-                    played: false,
-                    winner: null
-                });
-            }
-        }
-        bracket.round2 = round2;
-        saveData();
-    }
-
-    // Check round2 complete
-    if (bracket.round2.length > 0 && bracket.round2.every(m => m.played) && bracket.round3.length === 0) {
-        const winners = bracket.round2.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        const round3 = [];
-        for (let i = 0; i < winners.length; i += 2) {
-            if (i + 1 < winners.length) {
-                round3.push({
-                    player1: winners[i],
-                    player2: winners[i + 1],
-                    score1: null,
-                    score2: null,
-                    played: false,
-                    winner: null
-                });
-            }
-        }
-        bracket.round3 = round3;
-        saveData();
-    }
-
-    // Check round3 complete
-    if (bracket.round3.length > 0 && bracket.round3.every(m => m.played) && !bracket.final) {
-        const winners = bracket.round3.map(m => m.score1 > m.score2 ? m.player1 : m.score2 > m.score1 ? m.player2 : null).filter(w => w);
-        if (winners.length === 2) {
-            bracket.final = {
-                player1: winners[0],
-                player2: winners[1],
-                score1: null,
-                score2: null,
-                played: false,
-                winner: null
-            };
-            saveData();
-        }
-    }
-}
-
-function checkMLBBFinal() {
-    const gameData = data.mlbb;
-    const finalMatches = gameData.finalMatches;
-    if (finalMatches.length < 5) return;
-
-    let wins1 = 0,
-        wins2 = 0;
-    finalMatches.forEach(m => {
-        if (m.played) {
-            if (m.score1 > m.score2) wins1++;
-            else if (m.score2 > m.score1) wins2++;
-        }
-    });
-
-    if (wins1 >= 3 || wins2 >= 3) {
-        const champion = wins1 >= 3 ? finalMatches[0].player1 : finalMatches[0].player2;
-        gameData.champion = champion;
-        saveData();
-        showNotification(`🏆 Champion MLBB: ${champion}!`, 'success');
-        renderCurrentGame();
-    }
+// ============================================================
+//  REFRESH DATA
+// ============================================================
+function refreshData() {
+    fetchAllData();
 }
 
 // ============================================================
-//  EVENT LISTENERS
+//  AUTO REFRESH (setiap 5 menit)
+// ============================================================
+setInterval(() => {
+    refreshData();
+}, 300000); // 5 menit
+
+// ============================================================
+//  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Login
-    document.getElementById('loginBtn').addEventListener('click', login);
-    document.getElementById('usernameInput').addEventListener('keypress', e => {
-        if (e.key === 'Enter') login();
+    // Set current date
+    const now = new Date();
+    currentDateEl.textContent = now.toLocaleDateString('id-ID', { 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
     });
-    document.getElementById('passwordInput').addEventListener('keypress', e => {
-        if (e.key === 'Enter') login();
-    });
-
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', logout);
-
-    // Game navigation
-    document.querySelectorAll('.game-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentGame = this.dataset.game;
-            renderAll();
-        });
-    });
-
-    // Close modal on click outside
+    
+    // Countdown
+    updateCountdown();
+    setInterval(updateCountdown, 60000);
+    
+    // Fetch data
+    fetchAllData();
+    
+    // Modal close on outside click
     document.getElementById('matchModal').addEventListener('click', function(e) {
-        if (e.target === this) closeMatchModal();
+        if (e.target === this) closeModal();
     });
-
-    // Show login modal on load
-    document.getElementById('loginModal').style.display = 'flex';
+    
+    // Keyboard shortcut
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
 });
 
 // ============================================================
-//  KEYBOARD SHORTCUTS
+//  EXPOSE FUNCTIONS
 // ============================================================
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeMatchModal();
-    }
-});
+window.switchGame = switchGame;
+window.refreshData = refreshData;
+window.showMatchDetail = showMatchDetail;
+window.closeModal = closeModal;
 
-// ============================================================
-//  EXPOSE FUNCTIONS TO GLOBAL SCOPE (for inline onclick)
-// ============================================================
-window.openMatchModal = openMatchModal;
-window.closeMatchModal = closeMatchModal;
-window.resetData = resetData;
-window.renderCurrentGame = renderCurrentGame;
-window.showNotification = showNotification;
-
-console.log('🎮 Tournament Management System loaded!');
-console.log('📊 Data auto-save di localStorage');
-console.log('🔐 Login: admin / rahasia123');
+console.log('🏆 Tournament Manager 2026 loaded!');
+console.log('📊 Data dari Google Spreadsheet');
+console.log('🔄 Auto-refresh setiap 5 menit');
