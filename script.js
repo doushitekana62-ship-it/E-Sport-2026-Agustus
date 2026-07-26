@@ -15,10 +15,10 @@ const CONFIG = {
     // GID untuk setiap sheet (sesuaikan dengan spreadsheet Anda)
     SHEETS: {
         mlbb: { gid: 0, name: 'MLBB' },
-        mlbbTeams: { gid: 1, name: 'MLBB_Teams' },
-        ctr: { gid: 2, name: 'CTR' },
-        pes: { gid: 3, name: 'PES' },
-        pesTeams: { gid: 4, name: 'PES_Teams' }
+        mlbbTeams: { gid: 1224539532, name: 'MLBB_Teams' },
+        ctr: { gid: 905373510, name: 'CTR' },
+        pes: { gid: 956808020, name: 'PES' },
+        pesTeams: { gid: 1249712552, name: 'PES_Teams' }
     }
 };
 
