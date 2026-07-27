@@ -136,7 +136,7 @@ function getStatusColor(status) {
 function getTeamLogo(teamCode) {
     // Coba .jpeg dulu (sesuai dengan file di GitHub Anda)
     // Jika tidak ada, fallback ke .png
-    return `images/${teamCode}.jpeg`;
+    return `${teamCode}.jpeg`;
 }
 
 // ============================================================
@@ -144,7 +144,7 @@ function getTeamLogo(teamCode) {
 // ============================================================
 function getTeamLogoWithFallback(teamCode) {
     // Untuk tampilan detail, coba .jpeg, jika gagal pakai .png
-    return `images/${teamCode}.jpeg`;
+    return `${teamCode}.jpeg`;
 }
 
 // ============================================================
