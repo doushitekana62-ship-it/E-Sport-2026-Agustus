@@ -1,22 +1,23 @@
 // ============================================================
 //  TOURNAMENT MANAGER 2026
 //  Membaca data dari Google Spreadsheet
-//  Versi: 1.0
+//  Versi: 2.0
 // ============================================================
 
 // ============================================================
 //  KONFIGURASI SPREADSHEET
-//  Ganti link berikut dengan link publish spreadsheet Anda
+//  Ganti GID sesuai dengan sheet di spreadsheet Anda
 // ============================================================
 const CONFIG = {
     // Base URL spreadsheet (tanpa gid)
     BASE_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGMy9RZ4BDEkzQzwWzmFktWZOYMN_3Itz_MxZsksFw72AULd-2nYOihbW87E6qb7Pq9pQCluKMzz5-/pub',
     
-    // GID untuk setiap sheet (sesuaikan dengan spreadsheet Anda)
+    // GID untuk setiap sheet (sesuaikan dengan spreadsheet Anda!)
     SHEETS: {
         mlbb: { gid: 0, name: 'MLBB' },
         mlbbTeams: { gid: 1224539532, name: 'MLBB_Teams' },
         ctr: { gid: 905373510, name: 'CTR' },
+        ctrKnockout: { gid: 526017232, name: 'CTR_Knockout' },
         pes: { gid: 956808020, name: 'PES' },
         pesTeams: { gid: 1249712552, name: 'PES_Teams' }
     }
@@ -28,7 +29,7 @@ const CONFIG = {
 let currentGame = 'mlbb';
 let allData = {
     mlbb: { matches: [], teams: [], standings: [] },
-    ctr: { matches: [], standings: [] },
+    ctr: { matches: [], knockout: [], standings: [] },
     pes: { matches: [], teams: [], bracket: [] }
 };
 let isLoading = false;
@@ -103,6 +104,15 @@ function parseCSVLine(line) {
 function formatDate(dateStr) {
     if (!dateStr) return '-';
     try {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            return d.toLocaleDateString('id-ID', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+            });
+        }
         const d = new Date(dateStr);
         return d.toLocaleDateString('id-ID', { 
             day: 'numeric', 
@@ -116,8 +126,13 @@ function formatDate(dateStr) {
 
 function getStatusColor(status) {
     const s = status?.toLowerCase() || '';
-    if (s === 'done' || s === 'selesai') return 'done';
+    if (s === 'done' || s === 'selesai' || s === 'completed') return 'done';
     return 'pending';
+}
+
+function getTeamLogo(teamCode) {
+    // Coba load dari folder images/ dengan format A.png, B.png, dst
+    return `images/${teamCode}.png`;
 }
 
 // ============================================================
@@ -126,7 +141,7 @@ function getStatusColor(status) {
 function updateCountdown() {
     const now = new Date();
     const targets = [
-        { date: '2026-07-27', label: 'MLBB Mulai' },
+        { date: '2026-07-28', label: 'MLBB Mulai' },
         { date: '2026-08-03', label: 'CTR Mulai' },
         { date: '2026-08-05', label: 'PES Mulai' }
     ];
@@ -170,10 +185,11 @@ async function fetchAllData() {
 
     try {
         // Fetch semua sheet
-        const [mlbbRaw, mlbbTeamsRaw, ctrRaw, pesRaw, pesTeamsRaw] = await Promise.all([
+        const [mlbbRaw, mlbbTeamsRaw, ctrRaw, ctrKnockoutRaw, pesRaw, pesTeamsRaw] = await Promise.all([
             fetchCSV(CONFIG.SHEETS.mlbb.gid),
             fetchCSV(CONFIG.SHEETS.mlbbTeams.gid),
             fetchCSV(CONFIG.SHEETS.ctr.gid),
+            fetchCSV(CONFIG.SHEETS.ctrKnockout.gid),
             fetchCSV(CONFIG.SHEETS.pes.gid),
             fetchCSV(CONFIG.SHEETS.pesTeams.gid)
         ]);
@@ -185,6 +201,7 @@ async function fetchAllData() {
 
         // Proses CTR
         allData.ctr.matches = ctrRaw;
+        allData.ctr.knockout = ctrKnockoutRaw;
         allData.ctr.standings = calculateCTRStandings(ctrRaw);
 
         // Proses PES
@@ -289,42 +306,25 @@ function calculateCTRStandings(matches) {
     const standings = {};
     
     matches.forEach(m => {
-        const p1 = m.Player1?.trim() || '';
-        const p2 = m.Player2?.trim() || '';
-        const s1 = parseInt(m.Score1) || 0;
-        const s2 = parseInt(m.Score2) || 0;
+        const players = [m.Player1, m.Player2, m.Player3, m.Player4].filter(Boolean);
+        const winner1 = m.Winner1?.trim() || '';
+        const winner2 = m.Winner2?.trim() || '';
         
-        if (!p1 || !p2) return;
-        if (m.Status?.toLowerCase() !== 'done' && !m.Score1 && !m.Score2) return;
+        players.forEach(p => {
+            if (!standings[p]) {
+                standings[p] = { player: p, match: m.Match || '', group: m.Group || '', status: 'pending' };
+            }
+        });
         
-        if (!standings[p1]) standings[p1] = { player: p1, group: m.Group || '', points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
-        if (!standings[p2]) standings[p2] = { player: p2, group: m.Group || '', points: 0, wins: 0, draws: 0, losses: 0, matches: 0 };
-        
-        const s1data = standings[p1];
-        const s2data = standings[p2];
-        s1data.matches += 1;
-        s2data.matches += 1;
-        
-        if (s1 > s2) {
-            s1data.points += 3;
-            s1data.wins += 1;
-            s2data.losses += 1;
-        } else if (s2 > s1) {
-            s2data.points += 3;
-            s2data.wins += 1;
-            s1data.losses += 1;
-        } else {
-            s1data.points += 1;
-            s2data.points += 1;
-            s1data.draws += 1;
-            s2data.draws += 1;
+        if (winner1) {
+            if (standings[winner1]) standings[winner1].status = 'winner1';
+        }
+        if (winner2) {
+            if (standings[winner2]) standings[winner2].status = 'winner2';
         }
     });
     
-    return Object.values(standings).sort((a, b) => {
-        if (b.points !== a.points) return b.points - a.points;
-        return b.wins - a.wins;
-    });
+    return Object.values(standings);
 }
 
 // ============================================================
@@ -342,7 +342,6 @@ function buildPESBracket(matches, teams) {
         }
     });
     
-    // Build rounds
     const rounds = {
         round1: [],
         round2: [],
@@ -350,7 +349,6 @@ function buildPESBracket(matches, teams) {
         final: null
     };
     
-    // Group matches by round
     const roundMap = {};
     matches.forEach(m => {
         const round = m.Round?.trim() || 'R1';
@@ -358,9 +356,7 @@ function buildPESBracket(matches, teams) {
         roundMap[round].push(m);
     });
     
-    // Sort rounds
     const roundKeys = Object.keys(roundMap).sort();
-    const roundLabels = ['R1', 'R2', 'R3', 'Final'];
     
     roundKeys.forEach((key, idx) => {
         const matchesInRound = roundMap[key];
@@ -372,7 +368,8 @@ function buildPESBracket(matches, teams) {
             score2: parseInt(m.Score2) || null,
             winner: m.Winner?.trim() || '',
             status: m.Status?.toLowerCase() || 'pending',
-            date: m.Date || ''
+            date: m.Date || '',
+            time: m.Time || ''
         }));
         
         if (key === 'Final' || idx === 3) {
@@ -432,26 +429,45 @@ function renderMLBB() {
         </div>
     `;
     
-    // Standings
-    html += `<div class="group-grid">`;
+    // ===== TEAM CARDS with Logos =====
+    html += `<div class="team-grid">`;
+    const teams = data.teams;
+    teams.forEach(t => {
+        const teamCode = t.Team?.trim() || '';
+        const teamName = t.TeamName || `Team ${teamCode}`;
+        const players = [t.Player1, t.Player2, t.Player3, t.Player4, t.Player5].filter(Boolean);
+        const logoPath = getTeamLogo(teamCode);
+        
+        html += `
+            <div class="team-card">
+                <img src="${logoPath}" alt="${teamCode}" class="team-logo" onerror="this.style.display='none'">
+                <div class="team-name">${teamName}</div>
+                <div class="team-code">Team ${teamCode}</div>
+                <div class="team-players">${players.join(' • ')}</div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+    
+    // ===== STANDINGS =====
     const standings = data.standings;
     if (standings.length) {
         html += `
-            <div class="group-card" style="grid-column:1/-1;">
+            <div class="group-card" style="grid-column:1/-1;margin-bottom:20px;">
                 <div class="group-header">
                     <h4><i class="fas fa-trophy"></i> Klasemen Akhir</h4>
-                    <span class="team-name">Top 2 ke Final BO5</span>
+                    <span class="match-time">Top 2 ke Final BO5</span>
                 </div>
-                <table class="standings-table">
+                <table class="standings-table" style="width:100%;border-collapse:collapse;">
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Team</th>
-                            <th style="text-align:center">M</th>
-                            <th style="text-align:center">W</th>
-                            <th style="text-align:center">D</th>
-                            <th style="text-align:center">L</th>
-                            <th style="text-align:center">P</th>
+                            <th style="text-align:left;padding:6px 8px;">#</th>
+                            <th style="text-align:left;padding:6px 8px;">Team</th>
+                            <th style="text-align:center;padding:6px 8px;">M</th>
+                            <th style="text-align:center;padding:6px 8px;">W</th>
+                            <th style="text-align:center;padding:6px 8px;">D</th>
+                            <th style="text-align:center;padding:6px 8px;">L</th>
+                            <th style="text-align:center;padding:6px 8px;">P</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -463,18 +479,18 @@ function renderMLBB() {
             const displayName = s.name || `Team ${s.team}`;
             html += `
                 <tr class="${topClass}">
-                    <td class="rank ${rankClass}">${idx + 1}</td>
-                    <td class="team-cell">
+                    <td style="padding:6px 8px;font-weight:700;color:var(--text-secondary);" class="${rankClass}">${idx + 1}</td>
+                    <td style="padding:6px 8px;font-weight:600;">
                         <strong>${displayName}</strong>
                         <div style="font-size:10px;color:var(--text-muted);">
                             ${s.players.join(', ')}
                         </div>
                     </td>
-                    <td class="text-center">${s.matches}</td>
-                    <td class="text-center" style="color:var(--neon-green);">${s.wins}</td>
-                    <td class="text-center" style="color:var(--neon-yellow);">${s.draws}</td>
-                    <td class="text-center" style="color:var(--neon-red);">${s.losses}</td>
-                    <td class="points">${s.points}</td>
+                    <td style="text-align:center;padding:6px 8px;">${s.matches}</td>
+                    <td style="text-align:center;padding:6px 8px;color:var(--neon-green);">${s.wins}</td>
+                    <td style="text-align:center;padding:6px 8px;color:var(--neon-yellow);">${s.draws}</td>
+                    <td style="text-align:center;padding:6px 8px;color:var(--neon-red);">${s.losses}</td>
+                    <td style="text-align:center;padding:6px 8px;font-weight:700;color:var(--neon-green);">${s.points}</td>
                 </tr>
             `;
         });
@@ -485,31 +501,38 @@ function renderMLBB() {
             </div>
         `;
     }
-    html += `</div>`;
     
-    // Matches list
+    // ===== MATCHES LIST =====
     html += `
         <div class="section-title" style="margin-top:20px;">
-            <i class="fas fa-list"></i>
+            <i class="fas fa-calendar-alt"></i>
             <span>Jadwal & Hasil Pertandingan</span>
         </div>
         <div class="match-list">
     `;
     
     const matches = data.matches;
-    matches.forEach(m => {
+    const sortedMatches = [...matches].sort((a, b) => {
+        const dayA = parseInt(a.Day) || 0;
+        const dayB = parseInt(b.Day) || 0;
+        if (dayA !== dayB) return dayA - dayB;
+        return (a.Time || '').localeCompare(b.Time || '');
+    });
+    
+    sortedMatches.forEach((m) => {
         const t1 = m.Team1?.trim() || '';
         const t2 = m.Team2?.trim() || '';
         const s1 = m.Score1 ? parseInt(m.Score1) : null;
         const s2 = m.Score2 ? parseInt(m.Score2) : null;
         const isDone = m.Status?.toLowerCase() === 'done' || (s1 !== null && s2 !== null);
         const date = m.Date ? formatDate(m.Date) : `Hari ${m.Day || '-'}`;
+        const time = m.Time || '-';
         
         const team1Name = allData.mlbb.teams.find(t => t.Team?.trim() === t1)?.TeamName || t1;
         const team2Name = allData.mlbb.teams.find(t => t.Team?.trim() === t2)?.TeamName || t2;
         
         html += `
-            <div class="match-item" onclick="showMatchDetail('mlbb', ${matches.indexOf(m)})">
+            <div class="match-item" onclick="showMatchDetail('mlbb', '${m.Match || ''}')">
                 <div class="match-teams">
                     <span>${team1Name}</span>
                     <span class="vs">vs</span>
@@ -520,9 +543,11 @@ function renderMLBB() {
                 </div>
                 <div>
                     <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
-                        ${isDone ? '✅ Selesai' : '⏳ Pending'}
+                        ${isDone ? '✅' : '⏳'}
                     </span>
-                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${date}</div>
+                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">
+                        ${date} ${time}
+                    </div>
                 </div>
             </div>
         `;
@@ -530,14 +555,14 @@ function renderMLBB() {
     
     html += `</div>`;
     
-    // Final BO5 jika ada
+    // ===== FINAL BO5 =====
     const top2 = standings.slice(0, 2);
     if (top2.length === 2) {
         html += `
             <div class="section-title" style="margin-top:30px;">
                 <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
                 <span>🏆 GRAND FINAL BO5</span>
-                <span class="badge">31 Juli 2026</span>
+                <span class="badge">1 Agustus 2026</span>
             </div>
             <div class="bracket-container">
                 <div class="bracket-title">${top2[0].name || top2[0].team} 🆚 ${top2[1].name || top2[1].team}</div>
@@ -584,68 +609,61 @@ function renderCTR() {
         return;
     }
     
-    // Group by group
-    const groups = {};
-    data.matches.forEach(m => {
-        const g = m.Group?.trim() || 'Unknown';
-        if (!groups[g]) groups[g] = [];
-        groups[g].push(m);
-    });
-    
     let html = `
         <div class="section-title">
             <i class="fas fa-car"></i>
             <span>CTR - Fase Grup</span>
-            <span class="badge">Top 2 Lolos</span>
+            <span class="badge">4 Pemain per Match</span>
         </div>
         <div class="group-grid">
     `;
     
-    // Standings per group
-    const allStandings = data.standings;
-    const groupStandings = {};
-    allStandings.forEach(s => {
-        const g = s.group || 'Unknown';
-        if (!groupStandings[g]) groupStandings[g] = [];
-        groupStandings[g].push(s);
-    });
-    
-    Object.keys(groups).sort().forEach(g => {
-        const players = groupStandings[g] || [];
-        const sorted = [...players].sort((a, b) => b.points - a.points || b.wins - a.wins);
+    const matches = data.matches;
+    matches.forEach((m, idx) => {
+        const players = [m.Player1, m.Player2, m.Player3, m.Player4].filter(Boolean);
+        const winner1 = m.Winner1?.trim() || '';
+        const winner2 = m.Winner2?.trim() || '';
+        const isDone = winner1 && winner2;
+        const date = m.Tanggal ? formatDate(m.Tanggal) : '-';
+        const time = m.Waktu || '-';
         
         html += `
-            <div class="group-card">
+            <div class="group-card" onclick="showMatchDetail('ctr', '${m.Match || ''}')">
                 <div class="group-header">
-                    <h4><i class="fas fa-users"></i> Group ${g}</h4>
-                    <span class="team-name">${sorted.length} pemain</span>
+                    <h4><i class="fas fa-users"></i> ${m.Match || `Match ${idx + 1}`}</h4>
+                    <span class="match-time">${date} ${time}</span>
                 </div>
-                <table class="standings-table">
-                    <thead>
-                        <tr><th>#</th><th>Pemain</th><th style="text-align:center">M</th><th style="text-align:center">P</th></tr>
-                    </thead>
-                    <tbody>
+                <div class="group-players">
         `;
         
-        sorted.forEach((s, idx) => {
-            const rankClass = idx === 0 ? 'rank-1' : idx === 1 ? 'rank-2' : '';
-            const topClass = idx < 2 ? 'rank-top' : '';
+        players.forEach(p => {
+            let statusClass = '';
+            let statusLabel = '';
+            if (p === winner1) { statusClass = 'winner'; statusLabel = '🏆 Winner 1'; }
+            else if (p === winner2) { statusClass = 'winner'; statusLabel = '🏆 Winner 2'; }
+            
             html += `
-                <tr class="${topClass}">
-                    <td class="rank ${rankClass}">${idx + 1}</td>
-                    <td class="team-cell">${s.player}</td>
-                    <td class="text-center">${s.matches}</td>
-                    <td class="points">${s.points}</td>
-                </tr>
+                <div class="player-item ${statusClass}">
+                    <span class="player-name">${p}</span>
+                    <span class="player-status">${statusLabel}</span>
+                </div>
             `;
         });
         
         html += `
-                    </tbody>
-                </table>
-                <div style="margin-top:8px;font-size:11px;color:var(--text-secondary);">
-                    <i class="fas fa-info-circle"></i> 
-                    ✅ ${sorted.slice(0, 2).map(s => s.player).join(', ')} lolos ke 16 Besar
+                </div>
+                <div class="group-result">
+                    <div class="result-item">
+                        <div style="font-size:11px;color:var(--text-muted);">Winner 1</div>
+                        <div class="result-name">${winner1 || '-'}</div>
+                    </div>
+                    <div class="result-item">
+                        <div style="font-size:11px;color:var(--text-muted);">Winner 2</div>
+                        <div class="result-name">${winner2 || '-'}</div>
+                    </div>
+                </div>
+                <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text-muted);">
+                    Status: ${isDone ? '✅ Selesai' : '⏳ Pending'}
                 </div>
             </div>
         `;
@@ -653,44 +671,48 @@ function renderCTR() {
     
     html += `</div>`;
     
-    // List semua pertandingan
-    html += `
-        <div class="section-title" style="margin-top:20px;">
-            <i class="fas fa-list"></i>
-            <span>Semua Pertandingan CTR</span>
-        </div>
-        <div class="match-list">
-    `;
-    
-    data.matches.forEach((m, idx) => {
-        const p1 = m.Player1?.trim() || '';
-        const p2 = m.Player2?.trim() || '';
-        const s1 = m.Score1 ? parseInt(m.Score1) : null;
-        const s2 = m.Score2 ? parseInt(m.Score2) : null;
-        const isDone = m.Status?.toLowerCase() === 'done' || (s1 !== null && s2 !== null);
-        const date = m.Date ? formatDate(m.Date) : '-';
-        
+    // ===== KNOCKOUT BRACKET =====
+    const knockout = data.knockout;
+    if (knockout && knockout.length) {
         html += `
-            <div class="match-item" onclick="showMatchDetail('ctr', ${idx})">
-                <div class="match-teams">
-                    <span>${p1}</span>
-                    <span class="vs">vs</span>
-                    <span>${p2}</span>
-                </div>
-                <div class="match-score">
-                    ${isDone ? `<span class="score-done">${s1} - ${s2}</span>` : '<span class="score-pending">-</span>'}
-                </div>
-                <div>
-                    <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
-                        ${isDone ? '✅' : '⏳'}
-                    </span>
-                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${date}</div>
-                </div>
+            <div class="section-title" style="margin-top:30px;">
+                <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
+                <span>CTR - Knockout Stage</span>
             </div>
+            <div class="bracket-container">
+                <div class="bracket-title">🏆 16 Besar → 8 Besar → 4 Besar → Final</div>
+                <div class="match-list">
         `;
-    });
-    
-    html += `</div>`;
+        
+        knockout.forEach((m) => {
+            const p1 = m.Player1?.trim() || 'Menunggu';
+            const p2 = m.Player2?.trim() || 'Menunggu';
+            const winner = m.Winner?.trim() || '';
+            const isDone = winner !== '';
+            const round = m.Round || 'Knockout';
+            
+            html += `
+                <div class="match-item" onclick="showMatchDetail('ctr_ko', '${m.Match || ''}')">
+                    <div class="match-teams">
+                        <span>${p1}</span>
+                        <span class="vs">vs</span>
+                        <span>${p2}</span>
+                    </div>
+                    <div class="match-score">
+                        ${isDone ? `<span class="score-done">🏆 ${winner}</span>` : '<span class="score-pending">⏳</span>'}
+                    </div>
+                    <div>
+                        <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
+                            ${isDone ? '✅' : '⏳'}
+                        </span>
+                        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${round}</div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    }
     
     contentArea.innerHTML = html;
 }
@@ -721,20 +743,20 @@ function renderPES() {
         </div>
     `;
     
-    // Team list
+    // ===== TEAM LIST =====
+    const teams = data.teams;
     html += `
-        <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:15px 20px;margin-bottom:20px;border:1px solid rgba(180,77,255,0.1);">
+        <div style="background:var(--bg-secondary);border-radius:var(--radius);padding:15px 20px;margin-bottom:20px;border:1px solid rgba(180,77,255,0.08);">
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;font-size:12px;">
     `;
     
-    const teams = data.teams;
     teams.forEach(t => {
         const team = t.Team?.trim() || '';
         const p1 = t.Player1 || '';
         const p2 = t.Player2 || '';
         const isBye = team === 'B';
         html += `
-            <div style="padding:4px 8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:3px solid ${isBye ? 'var(--neon-yellow)' : 'var(--neon-purple)'};">
+            <div style="padding:4px 8px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:3px solid ${isBye ? 'var(--neon-yellow)' : 'var(--neon-purple)'};">
                 <strong style="color:${isBye ? 'var(--neon-yellow)' : 'var(--neon-blue)'};">Tim ${team}</strong>
                 ${isBye ? ' ⭐' : ''}
                 <div style="font-size:10px;color:var(--text-muted);">${p1} & ${p2}</div>
@@ -750,7 +772,7 @@ function renderPES() {
         </div>
     `;
     
-    // Bracket
+    // ===== BRACKET =====
     const bracket = data.bracket;
     const rounds = [
         { key: 'round1', label: '16 BESAR', icon: 'fa-chevron-right' },
@@ -768,13 +790,13 @@ function renderPES() {
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;">
         `;
         
-        matches.forEach((m, idx) => {
+        matches.forEach((m) => {
             const isDone = m.status === 'done' || (m.score1 !== null && m.score2 !== null);
             const isBye = m.team2 === 'BYE (B)' || m.team2 === 'BYE';
             const winner = m.winner || '';
             
             html += `
-                <div class="bracket-match" onclick="showMatchDetail('pes', ${idx}, '${round.key}')" 
+                <div class="bracket-match" onclick="showMatchDetail('pes', '${m.match || ''}')" 
                      style="${winner ? 'border-color:var(--neon-green);' : ''} ${isBye ? 'border-color:var(--neon-yellow);' : ''}">
                     <div class="match-players">
                         <div class="player-entry ${isDone && m.score1 > m.score2 ? 'winner' : ''}">
@@ -796,7 +818,7 @@ function renderPES() {
         html += `</div></div>`;
     });
     
-    // Final
+    // ===== FINAL =====
     if (bracket.rounds?.final) {
         const f = bracket.rounds.final;
         const isDone = f.status === 'done' || (f.score1 !== null && f.score2 !== null);
@@ -836,7 +858,7 @@ function renderPES() {
 // ============================================================
 //  MODAL DETAIL
 // ============================================================
-function showMatchDetail(game, index, round) {
+function showMatchDetail(game, matchId) {
     const modal = document.getElementById('matchModal');
     const body = document.getElementById('modalBody');
     
@@ -844,15 +866,38 @@ function showMatchDetail(game, index, round) {
     let title = '';
     
     if (game === 'mlbb') {
-        match = allData.mlbb.matches[index];
-        title = `MLBB - ${match.Team1} vs ${match.Team2}`;
+        match = allData.mlbb.matches.find(m => m.Match === matchId);
+        if (match) {
+            const t1 = allData.mlbb.teams.find(t => t.Team?.trim() === match.Team1)?.TeamName || match.Team1;
+            const t2 = allData.mlbb.teams.find(t => t.Team?.trim() === match.Team2)?.TeamName || match.Team2;
+            title = `MLBB - ${t1} vs ${t2}`;
+        }
     } else if (game === 'ctr') {
-        match = allData.ctr.matches[index];
-        title = `CTR - ${match.Player1} vs ${match.Player2}`;
+        match = allData.ctr.matches.find(m => m.Match === matchId);
+        if (match) {
+            title = `CTR - ${match.Match}`;
+        }
+    } else if (game === 'ctr_ko') {
+        match = allData.ctr.knockout.find(m => m.Match === matchId);
+        if (match) {
+            title = `CTR Knockout - ${match.Match}`;
+        }
     } else if (game === 'pes') {
-        const roundData = allData.pes.bracket.rounds?.[round] || [];
-        match = roundData[index];
-        title = `PES - ${match?.team1} vs ${match?.team2}`;
+        // Cari di semua round
+        const rounds = allData.pes.bracket.rounds || {};
+        for (const key in rounds) {
+            const arr = rounds[key];
+            if (Array.isArray(arr)) {
+                match = arr.find(m => m.match === matchId);
+                if (match) break;
+            } else if (arr && arr.match === matchId) {
+                match = arr;
+                break;
+            }
+        }
+        if (match) {
+            title = `PES - ${match.team1} vs ${match.team2}`;
+        }
     }
     
     if (!match) {
@@ -861,10 +906,15 @@ function showMatchDetail(game, index, round) {
         return;
     }
     
-    const isDone = match.Status?.toLowerCase() === 'done' || (match.Score1 !== undefined && match.Score1 !== null && match.Score1 !== '');
+    const isDone = match.Status?.toLowerCase() === 'done' || match.status === 'done' || 
+                   (match.Score1 !== undefined && match.Score1 !== null && match.Score1 !== '') ||
+                   (match.score1 !== null && match.score1 !== undefined);
+    
     const s1 = match.Score1 || match.score1 || '-';
     const s2 = match.Score2 || match.score2 || '-';
-    const winner = match.Winner || match.winner || '-';
+    const winner = match.Winner || match.winner || match.Winner1 || match.Winner2 || '-';
+    const date = match.Tanggal || match.Date || match.date || '-';
+    const time = match.Waktu || match.Time || match.time || '-';
     
     body.innerHTML = `
         <div class="modal-body">
@@ -874,7 +924,7 @@ function showMatchDetail(game, index, round) {
             </div>
             <div class="detail-row">
                 <span class="label">📅 Tanggal</span>
-                <span class="value">${match.Date || match.date || '-'}</span>
+                <span class="value">${date} ${time}</span>
             </div>
             <div class="detail-row">
                 <span class="label">📊 Skor</span>
@@ -916,13 +966,12 @@ function refreshData() {
 // ============================================================
 setInterval(() => {
     refreshData();
-}, 300000); // 5 menit
+}, 300000);
 
 // ============================================================
 //  INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Set current date
     const now = new Date();
     currentDateEl.textContent = now.toLocaleDateString('id-ID', { 
         day: 'numeric', 
@@ -930,19 +979,15 @@ document.addEventListener('DOMContentLoaded', function() {
         year: 'numeric' 
     });
     
-    // Countdown
     updateCountdown();
     setInterval(updateCountdown, 60000);
     
-    // Fetch data
     fetchAllData();
     
-    // Modal close on outside click
     document.getElementById('matchModal').addEventListener('click', function(e) {
         if (e.target === this) closeModal();
     });
     
-    // Keyboard shortcut
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeModal();
     });
@@ -959,3 +1004,4 @@ window.closeModal = closeModal;
 console.log('🏆 Tournament Manager 2026 loaded!');
 console.log('📊 Data dari Google Spreadsheet');
 console.log('🔄 Auto-refresh setiap 5 menit');
+console.log('📁 Sheet GID Configuration:', CONFIG.SHEETS);
