@@ -1,18 +1,18 @@
 // ============================================================
-//  TOURNAMENT MANAGER 2026
+//  E-SPORT TOURNAMENT MANAGER 2026
 //  Membaca data dari Google Spreadsheet
-//  Versi: 2.0
+//  Versi: 3.0
 // ============================================================
 
 // ============================================================
 //  KONFIGURASI SPREADSHEET
-//  Ganti GID sesuai dengan sheet di spreadsheet Anda
+//  GID sudah sesuai dengan spreadsheet Anda
 // ============================================================
 const CONFIG = {
     // Base URL spreadsheet (tanpa gid)
     BASE_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGMy9RZ4BDEkzQzwWzmFktWZOYMN_3Itz_MxZsksFw72AULd-2nYOihbW87E6qb7Pq9pQCluKMzz5-/pub',
     
-    // GID untuk setiap sheet (sesuaikan dengan spreadsheet Anda!)
+    // GID untuk setiap sheet (sudah sesuai dengan spreadsheet Anda!)
     SHEETS: {
         mlbb: { gid: 0, name: 'MLBB' },
         mlbbTeams: { gid: 1224539532, name: 'MLBB_Teams' },
@@ -130,9 +130,21 @@ function getStatusColor(status) {
     return 'pending';
 }
 
+// ============================================================
+//  GET TEAM LOGO - Mendukung .jpeg dan .png
+// ============================================================
 function getTeamLogo(teamCode) {
-    // Coba load dari folder images/ dengan format A.png, B.png, dst
-    return `images/${teamCode}.png`;
+    // Coba .jpeg dulu (sesuai dengan file di GitHub Anda)
+    // Jika tidak ada, fallback ke .png
+    return `images/${teamCode}.jpeg`;
+}
+
+// ============================================================
+//  GET TEAM LOGO WITH FALLBACK - Untuk tampilan detail
+// ============================================================
+function getTeamLogoWithFallback(teamCode) {
+    // Untuk tampilan detail, coba .jpeg, jika gagal pakai .png
+    return `images/${teamCode}.jpeg`;
 }
 
 // ============================================================
@@ -404,7 +416,7 @@ function switchGame(game) {
 }
 
 // ============================================================
-//  RENDER MLBB
+//  RENDER MLBB (dengan Team Card Clickable & Gambar Besar)
 // ============================================================
 function renderMLBB() {
     const data = allData.mlbb;
@@ -429,31 +441,40 @@ function renderMLBB() {
         </div>
     `;
     
-    // ===== TEAM CARDS with Logos =====
+    // ===== TEAM CARDS with Logos - Clickable =====
     html += `<div class="team-grid">`;
     const teams = data.teams;
+    const standings = data.standings;
+    
     teams.forEach(t => {
         const teamCode = t.Team?.trim() || '';
         const teamName = t.TeamName || `Team ${teamCode}`;
         const players = [t.Player1, t.Player2, t.Player3, t.Player4, t.Player5].filter(Boolean);
         const logoPath = getTeamLogo(teamCode);
         
+        // Cari posisi di standings
+        const standing = standings.find(s => s.team === teamCode);
+        const rank = standing ? standings.indexOf(standing) + 1 : '-';
+        const points = standing ? standing.points : '-';
+        
         html += `
-            <div class="team-card">
-                <img src="${logoPath}" alt="${teamCode}" class="team-logo" onerror="this.style.display='none'">
+            <div class="team-card" onclick="showTeamDetail('${teamCode}')">
+                <img src="${logoPath}" alt="${teamCode}" class="team-logo" 
+                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22%3E%3Crect width=%2280%22 height=%2280%22 fill=%22%231a1a3e%22/%3E%3Ctext x=%2240%22 y=%2245%22 text-anchor=%22middle%22 fill=%22%236a6a8a%22 font-size=%2230%22 font-family=%22Arial%22%3E${teamCode}%3C/text%3E%3C/svg%3E'">
                 <div class="team-name">${teamName}</div>
-                <div class="team-code">Team ${teamCode}</div>
+                <div class="team-code">Team ${teamCode} ${rank !== '-' ? `• Rank #${rank}` : ''}</div>
                 <div class="team-players">${players.join(' • ')}</div>
+                ${points !== '-' ? `<div style="font-size:14px;font-weight:700;color:var(--neon-green);margin-top:4px;">⭐ ${points} Poin</div>` : ''}
+                <div class="click-hint"><i class="fas fa-mouse-pointer"></i> Klik untuk detail</div>
             </div>
         `;
     });
     html += `</div>`;
     
     // ===== STANDINGS =====
-    const standings = data.standings;
     if (standings.length) {
         html += `
-            <div class="group-card" style="grid-column:1/-1;margin-bottom:20px;">
+            <div class="group-card" style="grid-column:1/-1;margin-bottom:20px;cursor:default;">
                 <div class="group-header">
                     <h4><i class="fas fa-trophy"></i> Klasemen Akhir</h4>
                     <span class="match-time">Top 2 ke Final BO5</span>
@@ -478,7 +499,7 @@ function renderMLBB() {
             const topClass = idx < 2 ? 'rank-top' : '';
             const displayName = s.name || `Team ${s.team}`;
             html += `
-                <tr class="${topClass}">
+                <tr class="${topClass}" onclick="showTeamDetail('${s.team}')" style="cursor:pointer;">
                     <td style="padding:6px 8px;font-weight:700;color:var(--text-secondary);" class="${rankClass}">${idx + 1}</td>
                     <td style="padding:6px 8px;font-weight:600;">
                         <strong>${displayName}</strong>
@@ -502,7 +523,7 @@ function renderMLBB() {
         `;
     }
     
-    // ===== MATCHES LIST =====
+    // ===== MATCHES LIST (Clickable) =====
     html += `
         <div class="section-title" style="margin-top:20px;">
             <i class="fas fa-calendar-alt"></i>
@@ -545,9 +566,7 @@ function renderMLBB() {
                     <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
                         ${isDone ? '✅' : '⏳'}
                     </span>
-                    <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">
-                        ${date} ${time}
-                    </div>
+                    <div class="match-time-small">${date} ${time}</div>
                 </div>
             </div>
         `;
@@ -567,7 +586,7 @@ function renderMLBB() {
             <div class="bracket-container">
                 <div class="bracket-title">${top2[0].name || top2[0].team} 🆚 ${top2[1].name || top2[1].team}</div>
                 <div style="display:flex;justify-content:center;gap:20px;flex-wrap:wrap;padding:15px;">
-                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-blue);">
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-blue);cursor:pointer;" onclick="showTeamDetail('${top2[0].team}')">
                         <div style="font-size:12px;color:var(--text-secondary);">Finalis 1</div>
                         <div style="font-size:20px;font-weight:700;color:var(--neon-blue);">${top2[0].name || top2[0].team}</div>
                         <div style="font-size:11px;color:var(--text-muted);">Poin: ${top2[0].points}</div>
@@ -575,7 +594,7 @@ function renderMLBB() {
                     <div style="display:flex;align-items:center;font-size:28px;color:var(--neon-yellow);">
                         <i class="fas fa-vs"></i>
                     </div>
-                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-pink);">
+                    <div style="text-align:center;padding:15px 25px;background:var(--bg-primary);border-radius:12px;border:2px solid var(--neon-pink);cursor:pointer;" onclick="showTeamDetail('${top2[1].team}')">
                         <div style="font-size:12px;color:var(--text-secondary);">Finalis 2</div>
                         <div style="font-size:20px;font-weight:700;color:var(--neon-pink);">${top2[1].name || top2[1].team}</div>
                         <div style="font-size:11px;color:var(--text-muted);">Poin: ${top2[1].points}</div>
@@ -592,7 +611,7 @@ function renderMLBB() {
 }
 
 // ============================================================
-//  RENDER CTR
+//  RENDER CTR (Clickable)
 // ============================================================
 function renderCTR() {
     const data = allData.ctr;
@@ -664,6 +683,7 @@ function renderCTR() {
                 </div>
                 <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text-muted);">
                     Status: ${isDone ? '✅ Selesai' : '⏳ Pending'}
+                    <div class="click-hint"><i class="fas fa-mouse-pointer"></i> Klik untuk detail</div>
                 </div>
             </div>
         `;
@@ -705,7 +725,7 @@ function renderCTR() {
                         <span class="match-status-badge ${isDone ? 'done' : 'pending'}">
                             ${isDone ? '✅' : '⏳'}
                         </span>
-                        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">${round}</div>
+                        <div class="match-time-small">${round}</div>
                     </div>
                 </div>
             `;
@@ -718,7 +738,7 @@ function renderCTR() {
 }
 
 // ============================================================
-//  RENDER PES
+//  RENDER PES (Clickable)
 // ============================================================
 function renderPES() {
     const data = allData.pes;
@@ -856,10 +876,80 @@ function renderPES() {
 }
 
 // ============================================================
-//  MODAL DETAIL
+//  SHOW TEAM DETAIL (dengan Gambar Besar)
+// ============================================================
+function showTeamDetail(teamCode) {
+    const modal = document.getElementById('teamModal');
+    const body = document.getElementById('teamModalBody');
+    
+    const teamData = allData.mlbb.teams.find(t => t.Team?.trim() === teamCode);
+    const standing = allData.mlbb.standings.find(s => s.team === teamCode);
+    
+    if (!teamData) {
+        body.innerHTML = '<p style="color:var(--neon-red);">Team tidak ditemukan</p>';
+        modal.style.display = 'flex';
+        return;
+    }
+    
+    const teamName = teamData.TeamName || `Team ${teamCode}`;
+    const players = [teamData.Player1, teamData.Player2, teamData.Player3, teamData.Player4, teamData.Player5].filter(Boolean);
+    const logoPath = getTeamLogoWithFallback(teamCode);
+    const rank = standing ? allData.mlbb.standings.indexOf(standing) + 1 : '-';
+    const points = standing ? standing.points : '-';
+    const wins = standing ? standing.wins : '-';
+    const draws = standing ? standing.draws : '-';
+    const losses = standing ? standing.losses : '-';
+    const matches = standing ? standing.matches : '-';
+    
+    body.innerHTML = `
+        <div class="team-detail">
+            <img src="${logoPath}" alt="${teamCode}" class="team-logo-large"
+                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect width=%22200%22 height=%22200%22 fill=%22%231a1a3e%22/%3E%3Ctext x=%22100%22 y=%22115%22 text-anchor=%22middle%22 fill=%22%236a6a8a%22 font-size=%2270%22 font-family=%22Arial%22%3E${teamCode}%3C/text%3E%3C/svg%3E'">
+            
+            <div class="team-name-large">${teamName}</div>
+            <div class="team-code-large">Team ${teamCode} ${rank !== '-' ? `• Peringkat #${rank}` : ''}</div>
+            
+            <div class="team-stats">
+                <div class="stat-item">
+                    <span class="stat-number">${points}</span>
+                    <span class="stat-label">Poin</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" style="color:var(--neon-green);">${wins}</span>
+                    <span class="stat-label">Menang</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" style="color:var(--neon-yellow);">${draws}</span>
+                    <span class="stat-label">Seri</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" style="color:var(--neon-red);">${losses}</span>
+                    <span class="stat-label">Kalah</span>
+                </div>
+            </div>
+            
+            <div style="margin:10px 0;">
+                <div style="font-size:14px;color:var(--text-secondary);">Total Pertandingan: <strong style="color:var(--text-primary);">${matches}</strong></div>
+            </div>
+            
+            <div class="team-players-large">
+                ${players.map(p => `<span class="player-tag">${p}</span>`).join('')}
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function closeTeamModal() {
+    document.getElementById('teamModal').style.display = 'none';
+}
+
+// ============================================================
+//  SHOW MATCH DETAIL
 // ============================================================
 function showMatchDetail(game, matchId) {
-    const modal = document.getElementById('matchModal');
+    const modal = document.getElementById('detailModal');
     const body = document.getElementById('modalBody');
     
     let match = null;
@@ -883,7 +973,6 @@ function showMatchDetail(game, matchId) {
             title = `CTR Knockout - ${match.Match}`;
         }
     } else if (game === 'pes') {
-        // Cari di semua round
         const rounds = allData.pes.bracket.rounds || {};
         for (const key in rounds) {
             const arr = rounds[key];
@@ -950,8 +1039,8 @@ function showMatchDetail(game, matchId) {
     modal.style.display = 'flex';
 }
 
-function closeModal() {
-    document.getElementById('matchModal').style.display = 'none';
+function closeDetailModal() {
+    document.getElementById('detailModal').style.display = 'none';
 }
 
 // ============================================================
@@ -984,12 +1073,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     fetchAllData();
     
-    document.getElementById('matchModal').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
+    // Modal close on outside click
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDetailModal();
+    });
+    document.getElementById('teamModal').addEventListener('click', function(e) {
+        if (e.target === this) closeTeamModal();
     });
     
+    // Keyboard shortcut
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeModal();
+        if (e.key === 'Escape') {
+            closeDetailModal();
+            closeTeamModal();
+        }
     });
 });
 
@@ -999,9 +1096,12 @@ document.addEventListener('DOMContentLoaded', function() {
 window.switchGame = switchGame;
 window.refreshData = refreshData;
 window.showMatchDetail = showMatchDetail;
-window.closeModal = closeModal;
+window.showTeamDetail = showTeamDetail;
+window.closeDetailModal = closeDetailModal;
+window.closeTeamModal = closeTeamModal;
 
-console.log('🏆 Tournament Manager 2026 loaded!');
+console.log('🏆 E-Sport Tournament Manager 2026 loaded!');
 console.log('📊 Data dari Google Spreadsheet');
 console.log('🔄 Auto-refresh setiap 5 menit');
 console.log('📁 Sheet GID Configuration:', CONFIG.SHEETS);
+console.log('🖼️ Team logo format: .jpeg');
