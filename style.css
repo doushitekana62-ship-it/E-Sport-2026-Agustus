@@ -304,11 +304,62 @@ body {
 }
 
 /* ============================================================
-   GROUP CARDS (MLBB & CTR)
+   MLBB - TEAM CARDS
+   ============================================================ */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.team-card {
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 16px;
+    border: 1px solid rgba(180, 77, 255, 0.08);
+    text-align: center;
+    transition: var(--transition);
+}
+
+.team-card:hover {
+    border-color: var(--neon-purple);
+    box-shadow: 0 0 20px rgba(180, 77, 255, 0.05);
+}
+
+.team-card .team-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+    margin: 0 auto 8px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+    padding: 4px;
+}
+
+.team-card .team-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.team-card .team-code {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.team-card .team-players {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ============================================================
+   GROUP CARDS (CTR)
    ============================================================ */
 .group-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -317,7 +368,7 @@ body {
     background: var(--bg-secondary);
     border-radius: var(--radius);
     padding: 20px;
-    border: 1px solid rgba(180, 77, 255, 0.1);
+    border: 1px solid rgba(180, 77, 255, 0.08);
     transition: var(--transition);
 }
 
@@ -341,64 +392,60 @@ body {
     gap: 10px;
 }
 
-.group-card .group-header .team-name {
-    font-size: 14px;
-    color: var(--neon-yellow);
-    background: rgba(255, 231, 77, 0.1);
-    padding: 2px 12px;
-    border-radius: 12px;
+.group-card .group-header .match-time {
+    font-size: 12px;
+    color: var(--text-muted);
 }
 
 .group-card .group-players {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
     margin-bottom: 12px;
 }
 
-.group-card .group-players .player-tag {
+.group-card .group-players .player-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    padding: 4px 8px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 6px;
+}
+
+.group-card .group-players .player-item .player-name {
+    color: var(--text-primary);
+}
+
+.group-card .group-players .player-item .player-status {
     font-size: 11px;
-    padding: 2px 10px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 12px;
-    color: var(--text-secondary);
 }
 
-.standings-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
+.group-card .group-players .player-item.winner {
+    border-left: 3px solid var(--neon-green);
 }
 
-.standings-table th {
-    text-align: left;
-    padding: 6px 4px;
-    color: var(--text-secondary);
-    font-weight: 600;
-    border-bottom: 1px solid rgba(180, 77, 255, 0.1);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.group-card .group-players .player-item.winner .player-name {
+    color: var(--neon-green);
 }
 
-.standings-table td {
-    padding: 6px 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+.group-card .group-result {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
 }
 
-.standings-table .rank {
-    width: 25px;
+.group-card .group-result .result-item {
+    text-align: center;
+    font-size: 12px;
+}
+
+.group-card .group-result .result-item .result-name {
     font-weight: 700;
-    color: var(--text-secondary);
+    color: var(--neon-green);
 }
-
-.standings-table .rank-1 { color: var(--neon-yellow); }
-.standings-table .rank-2 { color: var(--neon-blue); }
-.standings-table .rank-top { background: rgba(57, 255, 20, 0.05); }
-
-.standings-table .team-cell { font-weight: 600; }
-.standings-table .points { font-weight: 700; color: var(--neon-green); text-align: center; }
-.standings-table .text-center { text-align: center; }
 
 /* ============================================================
    BRACKET / CHART
@@ -407,7 +454,7 @@ body {
     background: var(--bg-secondary);
     border-radius: var(--radius);
     padding: 25px;
-    border: 1px solid rgba(180, 77, 255, 0.1);
+    border: 1px solid rgba(180, 77, 255, 0.08);
     overflow-x: auto;
     margin-top: 20px;
 }
@@ -450,7 +497,7 @@ body {
 
 .bracket-match {
     background: var(--bg-primary);
-    border: 2px solid rgba(180, 77, 255, 0.15);
+    border: 2px solid rgba(180, 77, 255, 0.12);
     border-radius: 10px;
     padding: 8px 12px;
     cursor: pointer;
@@ -463,7 +510,7 @@ body {
 
 .bracket-match:hover {
     border-color: var(--neon-purple);
-    box-shadow: 0 0 20px rgba(180, 77, 255, 0.1);
+    box-shadow: 0 0 20px rgba(180, 77, 255, 0.08);
     transform: scale(1.02);
 }
 
@@ -512,58 +559,18 @@ body {
 }
 
 /* ============================================================
-   FINAL BANNER
-   ============================================================ */
-.final-banner {
-    text-align: center;
-    padding: 30px 20px;
-    background: linear-gradient(135deg, rgba(180, 77, 255, 0.1), rgba(255, 77, 148, 0.1));
-    border-radius: var(--radius);
-    border: 2px solid var(--neon-yellow);
-    margin-top: 20px;
-    animation: pulseBorder 2s ease-in-out infinite;
-}
-
-@keyframes pulseBorder {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 231, 77, 0.05); }
-    50% { box-shadow: 0 0 50px rgba(255, 231, 77, 0.15); }
-}
-
-.final-banner .trophy-icon {
-    font-size: 48px;
-    color: var(--neon-yellow);
-    display: block;
-    margin-bottom: 10px;
-}
-
-.final-banner h2 {
-    font-size: 24px;
-    background: linear-gradient(135deg, var(--neon-yellow), var(--neon-orange));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.final-banner .champion-name {
-    font-size: 32px;
-    font-weight: 900;
-    color: var(--neon-green);
-    text-shadow: 0 0 40px rgba(57, 255, 20, 0.2);
-    margin-top: 8px;
-}
-
-/* ============================================================
-   MATCH LIST (Untuk semua game)
+   MATCH LIST
    ============================================================ */
 .match-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 12px;
     margin-top: 15px;
 }
 
 .match-item {
     background: var(--bg-primary);
-    border: 1px solid rgba(180, 77, 255, 0.08);
+    border: 1px solid rgba(180, 77, 255, 0.06);
     border-radius: 10px;
     padding: 12px 16px;
     display: flex;
@@ -573,7 +580,7 @@ body {
 }
 
 .match-item:hover {
-    border-color: rgba(180, 77, 255, 0.2);
+    border-color: rgba(180, 77, 255, 0.15);
 }
 
 .match-item .match-teams {
@@ -613,13 +620,53 @@ body {
 }
 
 .match-item .match-status-badge.done {
-    background: rgba(57, 255, 20, 0.15);
+    background: rgba(57, 255, 20, 0.12);
     color: var(--neon-green);
 }
 
 .match-item .match-status-badge.pending {
-    background: rgba(255, 231, 77, 0.1);
+    background: rgba(255, 231, 77, 0.08);
     color: var(--neon-yellow);
+}
+
+/* ============================================================
+   FINAL BANNER
+   ============================================================ */
+.final-banner {
+    text-align: center;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, rgba(180, 77, 255, 0.08), rgba(255, 77, 148, 0.08));
+    border-radius: var(--radius);
+    border: 2px solid var(--neon-yellow);
+    margin-top: 20px;
+    animation: pulseBorder 2s ease-in-out infinite;
+}
+
+@keyframes pulseBorder {
+    0%, 100% { box-shadow: 0 0 20px rgba(255, 231, 77, 0.03); }
+    50% { box-shadow: 0 0 50px rgba(255, 231, 77, 0.08); }
+}
+
+.final-banner .trophy-icon {
+    font-size: 48px;
+    color: var(--neon-yellow);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.final-banner h2 {
+    font-size: 24px;
+    background: linear-gradient(135deg, var(--neon-yellow), var(--neon-orange));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.final-banner .champion-name {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--neon-green);
+    text-shadow: 0 0 40px rgba(57, 255, 20, 0.15);
+    margin-top: 8px;
 }
 
 /* ============================================================
@@ -693,7 +740,7 @@ body {
     display: flex;
     justify-content: space-between;
     padding: 6px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
 }
 
 .modal-body .detail-row .label {
@@ -760,6 +807,7 @@ body {
     .game-btn .game-name { font-size: 13px; }
     
     #contentArea { padding: 12px; }
+    .team-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
     .group-grid { grid-template-columns: 1fr; }
     .section-title { font-size: 18px; }
     
@@ -782,4 +830,6 @@ body {
     .game-btn .game-name { font-size: 11px; }
     .game-btn .game-date { font-size: 9px; }
     .final-banner .champion-name { font-size: 24px; }
+    .team-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+    .team-card .team-logo { width: 40px; height: 40px; }
 }
