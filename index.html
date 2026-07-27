@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🏆 Tournament Manager 2026</title>
+    <title>🏆 E-Sport Tournament 2026</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
             <div class="logo-area">
                 <i class="fas fa-trophy neon-icon"></i>
                 <div>
-                    <h1>SWIF ASIA <span>E-SPORT </span></h1>
+                    <h1>SWIF ASIA <span>E-SPORT</span></h1>
                     <div class="subtitle">2026</div>
                 </div>
             </div>
@@ -79,19 +79,32 @@
                 <span id="lastUpdate">Last update: --</span>
             </p>
             <p class="footer-credit">
-                Made with <i class="fas fa-heart" style="color:#ff4d94;"></i> for Tournament 2026
+                Made with <i class="fas fa-heart" style="color:#ff4d94;"></i> for E-Sport 2026
             </p>
         </div>
     </footer>
 
-    <!-- ===== MODAL ===== -->
-    <div id="matchModal" class="modal" style="display:none;">
-        <div class="modal-content neon-border">
+    <!-- ===== MODAL DETAIL ===== -->
+    <div id="detailModal" class="modal" style="display:none;">
+        <div class="modal-content neon-border modal-large">
             <div class="modal-header">
                 <h3><i class="fas fa-info-circle"></i> Detail Pertandingan</h3>
-                <button class="close-modal" onclick="closeModal()">&times;</button>
+                <button class="close-modal" onclick="closeDetailModal()">&times;</button>
             </div>
             <div id="modalBody">
+                <!-- Dinamis -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL TEAM DETAIL (dengan gambar besar) ===== -->
+    <div id="teamModal" class="modal" style="display:none;">
+        <div class="modal-content neon-border modal-team">
+            <div class="modal-header">
+                <h3><i class="fas fa-users"></i> Detail Team</h3>
+                <button class="close-modal" onclick="closeTeamModal()">&times;</button>
+            </div>
+            <div id="teamModalBody">
                 <!-- Dinamis -->
             </div>
         </div>
