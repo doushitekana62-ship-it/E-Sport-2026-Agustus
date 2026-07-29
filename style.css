@@ -48,21 +48,18 @@ html {
 }
 
 body {
-    /* Background utama dengan gambar */
     background: 
-        
-        /* Layer 2: Gambar ornamen di pojok kanan bawah */
+        /* Gambar Kagura di pojok kanan bawah */
         url('kagura.png') no-repeat bottom right,
         
-        /* Layer 3: Efek gradasi hijau */
-        radial-gradient(ellipse at 50% 0%, rgba(57, 255, 20, 0.04), transparent 70%),
+        /* Efek gradasi hijau di atas */
+        radial-gradient(ellipse at 50% 0%, rgba(57, 255, 20, 0.05), transparent 70%),
         
-        /* Layer 4: Warna dasar */
+        /* Warna dasar */
         var(--bg-primary);
     
     background-size: 
-        auto,           /* pattern */
-        300px 300px,    /* ornamen */
+        300px 300px,    /* ukuran Kagura */
         auto,           /* gradasi */
         auto;           /* warna */
     
@@ -71,6 +68,20 @@ body {
     color: var(--text-primary);
     overflow-x: hidden;
     line-height: 1.6;
+    position: relative;
+}
+
+/* Opsional: Efek glow di sekitar Kagura */
+body::after {
+    content: '';
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle at bottom right, rgba(57, 255, 20, 0.06), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
 }
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
