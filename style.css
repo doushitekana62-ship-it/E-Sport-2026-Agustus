@@ -1,23 +1,35 @@
 /* ============================================================
-   ROOT VARIABLES - NEON CYBERPUNK THEME
+   ROOT VARIABLES - GREEN NEON / STABILO THEME
    ============================================================ */
 :root {
-    --bg-primary: #0a0a1a;
-    --bg-secondary: #12122a;
-    --bg-card: #1a1a3e;
-    --bg-card-hover: #222255;
-    --neon-purple: #b44dff;
-    --neon-blue: #4dc9ff;
-    --neon-pink: #ff4d94;
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #111111;
+    --bg-card: #1a1a1a;
+    --bg-card-hover: #2a2a2a;
+    
+    /* WARNA UTAMA - HIJAU STABILO */
     --neon-green: #39ff14;
+    --neon-green-light: #7dff7d;
+    --neon-green-dark: #00cc00;
     --neon-yellow: #ffe74d;
-    --neon-orange: #ff6b35;
+    --neon-orange: #ffb347;
+    
+    /* WARNA SEKUNDER */
+    --neon-blue: #4dc9ff;
+    --neon-purple: #b44dff;
+    --neon-pink: #ff6b9d;
     --neon-red: #ff3355;
-    --text-primary: #e0e0ff;
-    --text-secondary: #a0a0cc;
-    --text-muted: #6a6a8a;
-    --border-glow: 0 0 20px rgba(180, 77, 255, 0.3);
-    --shadow-neon: 0 0 30px rgba(180, 77, 255, 0.15);
+    
+    /* TEXT */
+    --text-primary: #f0fff0;
+    --text-secondary: #b0d0b0;
+    --text-muted: #6a8a6a;
+    
+    /* SHADOW & GLOW - HIJAU */
+    --border-glow: 0 0 20px rgba(57, 255, 20, 0.3);
+    --shadow-neon: 0 0 30px rgba(57, 255, 20, 0.15);
+    --shadow-green: 0 0 60px rgba(57, 255, 20, 0.08);
+    
     --radius: 16px;
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -36,31 +48,47 @@ html {
 }
 
 body {
-    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
+    /* Background utama dengan gambar */
+    background: 
+        
+        /* Layer 2: Gambar ornamen di pojok kanan bawah */
+        url('kagura.png') no-repeat bottom right,
+        
+        /* Layer 3: Efek gradasi hijau */
+        radial-gradient(ellipse at 50% 0%, rgba(57, 255, 20, 0.04), transparent 70%),
+        
+        /* Layer 4: Warna dasar */
+        var(--bg-primary);
+    
+    background-size: 
+        auto,           /* pattern */
+        300px 300px,    /* ornamen */
+        auto,           /* gradasi */
+        auto;           /* warna */
+    
     min-height: 100vh;
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    color: var(--text-primary);
     overflow-x: hidden;
     line-height: 1.6;
 }
-
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 ::-webkit-scrollbar-thumb {
-    background: var(--neon-purple);
+    background: var(--neon-green);
     border-radius: 4px;
-    box-shadow: 0 0 10px var(--neon-purple);
+    box-shadow: 0 0 10px rgba(57, 255, 20, 0.3);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--neon-pink); }
+::-webkit-scrollbar-thumb:hover { background: var(--neon-green-light); }
 
 /* ============================================================
    HEADER
    ============================================================ */
 .header {
     background: var(--bg-secondary);
-    border-bottom: 2px solid var(--neon-purple);
-    box-shadow: 0 0 40px rgba(180, 77, 255, 0.1);
+    border-bottom: 2px solid var(--neon-green);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.1);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -87,12 +115,12 @@ body {
     font-size: 32px;
     color: var(--neon-yellow);
     text-shadow: 0 0 30px rgba(255, 231, 77, 0.3);
-    animation: pulseGlow 2s ease-in-out infinite;
+    animation: pulseGlowYellow 2s ease-in-out infinite;
 }
 
-@keyframes pulseGlow {
+@keyframes pulseGlowYellow {
     0%, 100% { text-shadow: 0 0 20px rgba(255, 231, 77, 0.2); }
-    50% { text-shadow: 0 0 40px rgba(255, 231, 77, 0.5); }
+    50% { text-shadow: 0 0 50px rgba(255, 231, 77, 0.5); }
 }
 
 .logo-area h1 {
@@ -104,8 +132,8 @@ body {
 }
 
 .logo-area h1 span {
-    color: var(--neon-purple);
-    text-shadow: 0 0 20px rgba(180, 77, 255, 0.3);
+    color: var(--neon-green);
+    text-shadow: 0 0 20px rgba(57, 255, 20, 0.3);
 }
 
 .logo-area .subtitle {
@@ -127,11 +155,11 @@ body {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: rgba(77, 201, 255, 0.1);
-    border: 1px solid rgba(77, 201, 255, 0.2);
+    background: rgba(57, 255, 20, 0.08);
+    border: 1px solid rgba(57, 255, 20, 0.2);
     border-radius: 20px;
     font-size: 13px;
-    color: var(--neon-blue);
+    color: var(--neon-green-light);
 }
 
 .date-badge i { font-size: 12px; }
@@ -141,7 +169,7 @@ body {
     align-items: center;
     gap: 6px;
     padding: 6px 14px;
-    background: rgba(255, 231, 77, 0.1);
+    background: rgba(255, 231, 77, 0.08);
     border: 1px solid rgba(255, 231, 77, 0.2);
     border-radius: 20px;
     font-size: 13px;
@@ -153,9 +181,9 @@ body {
 .countdown-badge i { font-size: 12px; }
 
 .refresh-btn {
-    background: rgba(180, 77, 255, 0.15);
-    border: 1px solid var(--neon-purple);
-    color: var(--neon-purple);
+    background: rgba(57, 255, 20, 0.12);
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
     padding: 8px 12px;
     border-radius: 20px;
     cursor: pointer;
@@ -164,8 +192,8 @@ body {
 }
 
 .refresh-btn:hover {
-    background: rgba(180, 77, 255, 0.3);
-    box-shadow: 0 0 20px rgba(180, 77, 255, 0.2);
+    background: rgba(57, 255, 20, 0.25);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.15);
     transform: rotate(180deg);
 }
 
@@ -178,7 +206,7 @@ body {
     gap: 12px;
     padding: 16px 20px;
     background: var(--bg-primary);
-    border-bottom: 1px solid rgba(180, 77, 255, 0.05);
+    border-bottom: 1px solid rgba(57, 255, 20, 0.05);
     flex-wrap: wrap;
     position: sticky;
     top: 70px;
@@ -192,7 +220,7 @@ body {
     gap: 12px;
     padding: 10px 20px;
     background: var(--bg-secondary);
-    border: 2px solid rgba(180, 77, 255, 0.15);
+    border: 2px solid rgba(57, 255, 20, 0.12);
     border-radius: var(--radius);
     cursor: pointer;
     transition: var(--transition);
@@ -200,15 +228,15 @@ body {
 }
 
 .game-btn:hover {
-    border-color: var(--neon-purple);
+    border-color: var(--neon-green);
     transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(180, 77, 255, 0.1);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.08);
 }
 
 .game-btn.active {
-    border-color: var(--neon-purple);
-    background: rgba(180, 77, 255, 0.15);
-    box-shadow: 0 0 40px rgba(180, 77, 255, 0.1);
+    border-color: var(--neon-green);
+    background: rgba(57, 255, 20, 0.1);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.08);
 }
 
 .game-btn .game-logo {
@@ -216,7 +244,7 @@ body {
     height: 40px;
     object-fit: contain;
     border-radius: 8px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.03);
     padding: 4px;
 }
 
@@ -238,19 +266,12 @@ body {
 }
 
 .game-btn.active .game-name {
-    color: var(--neon-purple);
+    color: var(--neon-green);
 }
 
 /* ============================================================
-   MAIN CONTENT
+   LOADING
    ============================================================ */
-#contentArea {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px 20px 40px;
-    min-height: 60vh;
-}
-
 .loading-container {
     display: flex;
     flex-direction: column;
@@ -263,8 +284,8 @@ body {
 .loading-spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(180, 77, 255, 0.1);
-    border-top: 4px solid var(--neon-purple);
+    border: 4px solid rgba(57, 255, 20, 0.08);
+    border-top: 4px solid var(--neon-green);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -279,7 +300,7 @@ body {
 }
 
 /* ============================================================
-   SECTION TITLE
+   SECTION TITLE - HIJAU
    ============================================================ */
 .section-title {
     font-size: 22px;
@@ -288,8 +309,8 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    color: var(--neon-blue);
-    text-shadow: 0 0 20px rgba(77, 201, 255, 0.1);
+    color: var(--neon-green-light);
+    text-shadow: 0 0 20px rgba(57, 255, 20, 0.08);
 }
 
 .section-title i { font-size: 24px; }
@@ -298,13 +319,13 @@ body {
     font-size: 12px;
     padding: 2px 12px;
     border-radius: 12px;
-    background: rgba(180, 77, 255, 0.2);
-    color: var(--neon-purple);
+    background: rgba(57, 255, 20, 0.12);
+    color: var(--neon-green);
     font-weight: 400;
 }
 
 /* ============================================================
-   MLBB - TEAM CARDS (Clickable)
+   TEAM CARDS - HIJAU
    ============================================================ */
 .team-grid {
     display: grid;
@@ -317,7 +338,7 @@ body {
     background: var(--bg-secondary);
     border-radius: var(--radius);
     padding: 16px;
-    border: 2px solid rgba(180, 77, 255, 0.08);
+    border: 2px solid rgba(57, 255, 20, 0.06);
     text-align: center;
     transition: var(--transition);
     cursor: pointer;
@@ -332,7 +353,7 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(180, 77, 255, 0.05), transparent);
+    background: linear-gradient(90deg, transparent, rgba(57, 255, 20, 0.04), transparent);
     transition: var(--transition);
 }
 
@@ -341,8 +362,8 @@ body {
 }
 
 .team-card:hover {
-    border-color: var(--neon-purple);
-    box-shadow: 0 0 30px rgba(180, 77, 255, 0.1);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.08);
     transform: translateY(-4px) scale(1.02);
 }
 
@@ -352,15 +373,15 @@ body {
     object-fit: contain;
     margin: 0 auto 10px;
     border-radius: 16px;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.02);
     padding: 8px;
-    border: 1px solid rgba(180, 77, 255, 0.1);
+    border: 1px solid rgba(57, 255, 20, 0.08);
     transition: var(--transition);
 }
 
 .team-card:hover .team-logo {
-    border-color: var(--neon-purple);
-    box-shadow: 0 0 30px rgba(180, 77, 255, 0.15);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.1);
 }
 
 .team-card .team-name {
@@ -396,13 +417,13 @@ body {
     font-size: 14px;
     font-weight: 900;
     color: var(--neon-yellow);
-    background: rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.6);
     padding: 2px 10px;
     border-radius: 12px;
 }
 
 /* ============================================================
-   GROUP CARDS (CTR - Clickable)
+   GROUP CARDS - HIJAU
    ============================================================ */
 .group-grid {
     display: grid;
@@ -415,14 +436,14 @@ body {
     background: var(--bg-secondary);
     border-radius: var(--radius);
     padding: 20px;
-    border: 2px solid rgba(180, 77, 255, 0.08);
+    border: 2px solid rgba(57, 255, 20, 0.06);
     transition: var(--transition);
     cursor: pointer;
 }
 
 .group-card:hover {
-    border-color: var(--neon-purple);
-    box-shadow: 0 0 30px rgba(180, 77, 255, 0.08);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 30px rgba(57, 255, 20, 0.06);
     transform: translateY(-3px);
 }
 
@@ -435,7 +456,7 @@ body {
 
 .group-card .group-header h4 {
     font-size: 18px;
-    color: var(--neon-purple);
+    color: var(--neon-green);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -489,7 +510,7 @@ body {
     gap: 16px;
     justify-content: center;
     padding-top: 10px;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid rgba(255,255,255,0.03);
 }
 
 .group-card .group-result .result-item {
@@ -511,13 +532,13 @@ body {
 }
 
 /* ============================================================
-   BRACKET / CHART (Interaktif)
+   BRACKET / CHART - HIJAU
    ============================================================ */
 .bracket-container {
     background: var(--bg-secondary);
     border-radius: var(--radius);
     padding: 25px;
-    border: 1px solid rgba(180, 77, 255, 0.08);
+    border: 1px solid rgba(57, 255, 20, 0.06);
     overflow-x: auto;
     margin-top: 20px;
 }
@@ -529,7 +550,7 @@ body {
     color: var(--neon-yellow);
     margin-bottom: 20px;
     letter-spacing: 2px;
-    text-shadow: 0 0 30px rgba(255, 231, 77, 0.1);
+    text-shadow: 0 0 30px rgba(255, 231, 77, 0.08);
 }
 
 .bracket {
@@ -560,7 +581,7 @@ body {
 
 .bracket-match {
     background: var(--bg-primary);
-    border: 2px solid rgba(180, 77, 255, 0.12);
+    border: 2px solid rgba(57, 255, 20, 0.1);
     border-radius: 10px;
     padding: 8px 12px;
     cursor: pointer;
@@ -572,8 +593,8 @@ body {
 }
 
 .bracket-match:hover {
-    border-color: var(--neon-purple);
-    box-shadow: 0 0 25px rgba(180, 77, 255, 0.12);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 25px rgba(57, 255, 20, 0.08);
     transform: scale(1.03);
 }
 
@@ -593,7 +614,7 @@ body {
 
 .bracket-match .player-entry .score {
     font-weight: 700;
-    color: var(--neon-blue);
+    color: var(--neon-green-light);
     min-width: 25px;
     text-align: right;
 }
@@ -622,7 +643,7 @@ body {
 }
 
 /* ============================================================
-   MATCH LIST (Interaktif)
+   MATCH LIST - HIJAU
    ============================================================ */
 .match-list {
     display: grid;
@@ -633,7 +654,7 @@ body {
 
 .match-item {
     background: var(--bg-primary);
-    border: 1px solid rgba(180, 77, 255, 0.06);
+    border: 1px solid rgba(57, 255, 20, 0.05);
     border-radius: 10px;
     padding: 12px 16px;
     display: flex;
@@ -644,8 +665,8 @@ body {
 }
 
 .match-item:hover {
-    border-color: var(--neon-purple);
-    box-shadow: 0 0 20px rgba(180, 77, 255, 0.06);
+    border-color: var(--neon-green);
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.04);
     transform: translateX(4px);
 }
 
@@ -686,12 +707,12 @@ body {
 }
 
 .match-item .match-status-badge.done {
-    background: rgba(57, 255, 20, 0.12);
+    background: rgba(57, 255, 20, 0.1);
     color: var(--neon-green);
 }
 
 .match-item .match-status-badge.pending {
-    background: rgba(255, 231, 77, 0.08);
+    background: rgba(255, 231, 77, 0.06);
     color: var(--neon-yellow);
 }
 
@@ -702,21 +723,21 @@ body {
 }
 
 /* ============================================================
-   FINAL BANNER
+   FINAL BANNER - HIJAU
    ============================================================ */
 .final-banner {
     text-align: center;
     padding: 30px 20px;
-    background: linear-gradient(135deg, rgba(180, 77, 255, 0.08), rgba(255, 77, 148, 0.08));
+    background: linear-gradient(135deg, rgba(57, 255, 20, 0.06), rgba(57, 255, 20, 0.02));
     border-radius: var(--radius);
     border: 2px solid var(--neon-yellow);
     margin-top: 20px;
-    animation: pulseBorder 2s ease-in-out infinite;
+    animation: pulseBorderGreen 2s ease-in-out infinite;
 }
 
-@keyframes pulseBorder {
-    0%, 100% { box-shadow: 0 0 20px rgba(255, 231, 77, 0.03); }
-    50% { box-shadow: 0 0 50px rgba(255, 231, 77, 0.08); }
+@keyframes pulseBorderGreen {
+    0%, 100% { box-shadow: 0 0 20px rgba(57, 255, 20, 0.03); }
+    50% { box-shadow: 0 0 50px rgba(57, 255, 20, 0.08); }
 }
 
 .final-banner .trophy-icon {
@@ -737,12 +758,12 @@ body {
     font-size: 32px;
     font-weight: 900;
     color: var(--neon-green);
-    text-shadow: 0 0 40px rgba(57, 255, 20, 0.15);
+    text-shadow: 0 0 40px rgba(57, 255, 20, 0.12);
     margin-top: 8px;
 }
 
 /* ============================================================
-   MODAL - Detail Pertandingan
+   MODAL - HIJAU
    ============================================================ */
 .modal {
     position: fixed;
@@ -750,7 +771,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.88);
     backdrop-filter: blur(8px);
     z-index: 9999;
     display: flex;
@@ -772,8 +793,8 @@ body {
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
-    border: 2px solid var(--neon-purple);
-    box-shadow: var(--border-glow), var(--shadow-neon);
+    border: 2px solid var(--neon-green);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.1);
 }
 
 .modal-content.modal-large {
@@ -792,7 +813,7 @@ body {
 }
 
 .modal-header h3 {
-    color: var(--neon-purple);
+    color: var(--neon-green);
     font-size: 18px;
 }
 
@@ -836,7 +857,7 @@ body {
 }
 
 /* ============================================================
-   MODAL - TEAM DETAIL (Gambar Besar)
+   TEAM DETAIL MODAL - HIJAU
    ============================================================ */
 .team-detail {
     text-align: center;
@@ -849,10 +870,10 @@ body {
     object-fit: contain;
     margin: 0 auto 20px;
     border-radius: 20px;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255,255,255,0.02);
     padding: 16px;
-    border: 2px solid var(--neon-purple);
-    box-shadow: 0 0 40px rgba(180, 77, 255, 0.15);
+    border: 2px solid var(--neon-green);
+    box-shadow: 0 0 40px rgba(57, 255, 20, 0.08);
 }
 
 .team-detail .team-name-large {
@@ -877,12 +898,12 @@ body {
 }
 
 .team-detail .team-players-large .player-tag {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.03);
     padding: 6px 16px;
     border-radius: 20px;
     font-size: 14px;
     color: var(--text-secondary);
-    border: 1px solid rgba(180, 77, 255, 0.1);
+    border: 1px solid rgba(57, 255, 20, 0.06);
 }
 
 .team-detail .team-stats {
@@ -902,7 +923,7 @@ body {
 .team-detail .team-stats .stat-item .stat-number {
     font-size: 24px;
     font-weight: 900;
-    color: var(--neon-blue);
+    color: var(--neon-green-light);
     display: block;
 }
 
@@ -912,11 +933,45 @@ body {
 }
 
 /* ============================================================
+   STANDINGS TABLE - HIJAU
+   ============================================================ */
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.standings-table th {
+    text-align: left;
+    padding: 6px 8px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid rgba(57, 255, 20, 0.08);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.standings-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+}
+
+.standings-table .rank-1 {
+    color: var(--neon-yellow);
+}
+.standings-table .rank-2 {
+    color: var(--neon-green-light);
+}
+.standings-table .rank-top {
+    background: rgba(57, 255, 20, 0.04);
+}
+
+/* ============================================================
    FOOTER
    ============================================================ */
 .footer {
     background: var(--bg-secondary);
-    border-top: 1px solid rgba(180, 77, 255, 0.05);
+    border-top: 1px solid rgba(57, 255, 20, 0.04);
     padding: 16px 20px;
     text-align: center;
 }
@@ -933,12 +988,16 @@ body {
 
 .footer .divider {
     margin: 0 8px;
-    color: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.03);
 }
 
 .footer .footer-credit {
     margin-top: 4px;
     font-size: 11px;
+}
+
+.footer .footer-credit i {
+    color: var(--neon-green);
 }
 
 /* ============================================================
@@ -990,16 +1049,10 @@ body {
     .logo-area h1 { font-size: 15px; }
     .logo-area .neon-icon { font-size: 24px; }
     .game-btn { padding: 6px 10px; min-width: 80px; }
-   px; }
-    .game-btn . .game-btn .game-logo {game-logo { width: 24 width: 24px; height:px; height: 24 24px; }
-   px; }
-    .game-btn .game-btn .game-name .game-name { font-size: { font-size: 11px; }
-    .game-btn .game-date 11px; }
-    .game { font-size: 9px;-btn .game-date { font-size: 9px; }
-    .team }
-    .team-grid { grid-template-grid { grid-template-columns: repeat-columns: repeat(auto-fit, min(auto-fit, minmax(120max(120px, 1fr)); }
-   px, 1fr .team-card .team-logo {)); }
-    .team-card .team-logo { width: 60 width: 60px; height:px; height: 60px; 60px; }
-    .team }
-    .team-card .team-name-card .team-name { font-size: { font-size: 14 14px; }
+    .game-btn .game-logo { width: 24px; height: 24px; }
+    .game-btn .game-name { font-size: 11px; }
+    .game-btn .game-date { font-size: 9px; }
+    .team-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    .team-card .team-logo { width: 60px; height: 60px; }
+    .team-card .team-name { font-size: 14px; }
 }
