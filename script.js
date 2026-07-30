@@ -477,7 +477,7 @@ function renderMLBB() {
             <div class="group-card" style="grid-column:1/-1;margin-bottom:20px;cursor:default;">
                 <div class="group-header">
                     <h4><i class="fas fa-trophy"></i> Klasemen Akhir</h4>
-                    <span class="match-time">Top 2 ke Final BO5</span>
+                    <span class="match-time">Top 2 ke Final BO3</span>
                 </div>
                 <table class="standings-table" style="width:100%;border-collapse:collapse;">
                     <thead>
@@ -574,13 +574,13 @@ function renderMLBB() {
     
     html += `</div>`;
     
-    // ===== FINAL BO5 =====
+    // ===== FINAL BO3 =====
     const top2 = standings.slice(0, 2);
     if (top2.length === 2) {
         html += `
             <div class="section-title" style="margin-top:30px;">
                 <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
-                <span>🏆 GRAND FINAL BO5</span>
+                <span>🏆 GRAND FINAL BO3</span>
                 <span class="badge">1 Agustus 2026</span>
             </div>
             <div class="bracket-container">
@@ -601,7 +601,7 @@ function renderMLBB() {
                     </div>
                 </div>
                 <div style="text-align:center;font-size:13px;color:var(--text-secondary);">
-                    <i class="fas fa-info-circle"></i> Skor BO5 akan diupdate di spreadsheet
+                    <i class="fas fa-info-circle"></i> Skor BO3 akan diupdate di spreadsheet
                 </div>
             </div>
         `;
