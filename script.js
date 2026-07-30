@@ -581,7 +581,7 @@ function renderMLBB() {
             <div class="section-title" style="margin-top:30px;">
                 <i class="fas fa-trophy" style="color:var(--neon-yellow);"></i>
                 <span>🏆 GRAND FINAL BO3</span>
-                <span class="badge">1 Agustus 2026</span>
+                <span class="badge">3 Agustus 2026</span>
             </div>
             <div class="bracket-container">
                 <div class="bracket-title">${top2[0].name || top2[0].team} 🆚 ${top2[1].name || top2[1].team}</div>
